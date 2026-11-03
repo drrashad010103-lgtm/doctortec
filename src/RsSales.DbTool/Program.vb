@@ -29,6 +29,8 @@ Module Program
                     RunCreateAdmin(options)
                 Case "import-legacy"
                     RunImportLegacy(options)
+                Case "diff-legacy"
+                    RunDiffLegacy(options)
                 Case "verify"
                     RunVerify(options)
                 Case "status"
@@ -61,6 +63,9 @@ Module Program
         Console.WriteLine("                 (--source defaults to the legacy rs_pharmacy database;")
         Console.WriteLine("                  --dry-run only counts what would be imported, writing nothing)")
         Console.WriteLine("  verify         [--conn CS]")
+        Console.WriteLine("  diff-legacy    [--conn CS] [--source CS] [--samples N]")
+        Console.WriteLine("                 (read-only: compares app items against the legacy source and")
+        Console.WriteLine("                  counts rows hand-edited in the app after import-legacy)")
         Console.WriteLine("  status         [--conn CS]")
         Console.WriteLine()
         Console.WriteLine("Connection string can also come from RSSALES_CONNECTION.")
@@ -429,15 +434,39 @@ Module Program
                 End If
 
                 Dim sql As String =
-                    "SELECT id, symbol, nameEN, no, group_id, unit AS UnitId, IS_Deleted, purch_price, " &
+                    "SELECT id, symbol, nameEN, no, barcode, group_id, unit AS UnitId, IS_Deleted, purch_price, " &
                     "       sale_price, whole_price, minprice, `limit` AS ReorderLevel " &
                     "FROM currencies WHERE IS_Deleted=0 ORDER BY id"
                 If limit > 0 Then sql &= " LIMIT " & limit.ToString()
 
+                ' كود الصنف = باركوده في المصدر (عمود `no` فاضي بالكامل). الباركود المكرر أو
+                ' المحجوز لصنف تاني يرجع لـ L+id حتى لا يفشل القيد ux_items_code.
+                Dim legacyRows = source.Query(Of LegacyItemRow)(sql).AsList()
+                Dim barcodeUses As New Dictionary(Of String, Integer)()
+                For Each r In legacyRows
+                    Dim bc As String = If(r.Barcode, "").Trim()
+                    If bc.Length > 0 AndAlso bc.Length <= 64 Then barcodeUses(bc) = If(barcodeUses.ContainsKey(bc), barcodeUses(bc) + 1, 1)
+                Next
+                Dim codeOwner As New Dictionary(Of String, Long)()
+                For Each c In target.Connection.Query(Of CodeOwnerRow)("SELECT code, id FROM items", Nothing, tx)
+                    codeOwner(c.Code) = c.Id
+                Next
+
                 Dim imported As Integer = 0
-                For Each row In source.Query(Of LegacyItemRow)(sql)
+                Dim codeFromBarcode As Integer = 0, codeFallback As Integer = 0
+                For Each row In legacyRows
                     Dim legacyId As Long = row.Id
-                    Dim code As String = "L" & legacyId.ToString("000000")
+                    Dim barcode As String = If(row.Barcode, "").Trim()
+                    Dim code As String
+                    If barcode.Length > 0 AndAlso barcode.Length <= 64 AndAlso
+                       barcodeUses(barcode) = 1 AndAlso
+                       (Not codeOwner.ContainsKey(barcode) OrElse codeOwner(barcode) = legacyId) Then
+                        code = barcode
+                        codeFromBarcode += 1
+                    Else
+                        code = "L" & legacyId.ToString("000000")
+                        codeFallback += 1
+                    End If
                     Dim nameAr As String = If(row.Symbol, "").Trim()
                     If nameAr.Length = 0 Then nameAr = "صنف " & legacyId.ToString()
 
@@ -459,7 +488,7 @@ Module Program
                         "ON DUPLICATE KEY UPDATE name_ar=VALUES(name_ar), name_en=VALUES(name_en), " &
                         "group_id=VALUES(group_id), base_unit_id=VALUES(base_unit_id), cost_price=VALUES(cost_price), " &
                         "sale_price=VALUES(sale_price), wholesale_price=VALUES(wholesale_price), " &
-                        "min_price=VALUES(min_price), reorder_level=VALUES(reorder_level)",
+                        "min_price=VALUES(min_price), reorder_level=VALUES(reorder_level), code=VALUES(code)",
                         New With {
                             .id = legacyId, .uuid = Uuid7.NewId(), .code = code, .nameAr = nameAr,
                             .nameEn = row.NameEn, .groupId = row.GroupId, .unitId = row.UnitId,
@@ -543,6 +572,7 @@ Module Program
 
                 target.Commit()
                 Console.WriteLine($"Imported items: {imported}, barcodes: {barcodeCount} (conflicts skipped: {barcodeConflicts}), customers: {customerCount}, groups: {groupCount}")
+                Console.WriteLine($"Item codes: {codeFromBarcode} from legacy barcode, {codeFallback} kept as L+id (duplicate or reserved barcode)")
             End Using
         End Using
     End Sub
@@ -563,6 +593,107 @@ Module Program
             Console.WriteLine("  items now          : " & target.Connection.ExecuteScalar(Of Long)("SELECT COUNT(*) FROM items").ToString())
             Console.WriteLine("  customers now      : " & target.Connection.ExecuteScalar(Of Long)("SELECT COUNT(*) FROM customers").ToString())
         End Using
+    End Sub
+
+    ''' <summary>
+    ''' مقارنة من طرف واحد فقط للقراءة: هل أسعار/أكواد الأصناف في قاعدة التطبيق مطابقة لمصدر rs_pharmacy،
+    ''' وكم صنفاً عدّلته يدوياً في التطبيق بعد الاستيراد (updated_at &gt; created_at).
+    ''' </summary>
+    Private Sub RunDiffLegacy(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim sourceConn = GetOption(options, "source",
+            "Server=localhost;Port=3306;Database=rs_pharmacy;User ID=root;Password=;SslMode=None")
+        Dim maxSamples As Integer = 12
+        Integer.TryParse(GetOption(options, "samples", "12"), maxSamples)
+
+        Dim legacy As New Dictionary(Of Long, LegacyItemRow)()
+        Using source As New MySqlConnection(sourceConn)
+            source.Open()
+            For Each r In source.Query(Of LegacyItemRow)(
+                    "SELECT id, symbol, nameEN, no, barcode, group_id AS GroupId, unit AS UnitId, IS_Deleted AS IsDeleted, " &
+                    "       purch_price AS PurchPrice, sale_price AS SalePrice, whole_price AS WholePrice, " &
+                    "       minprice AS MinPrice, `limit` AS ReorderLevel " &
+                    "FROM currencies WHERE IS_Deleted=0")
+                legacy(r.Id) = r
+            Next
+
+            ' أي سعر تعرضه شاشة المصدر فعليًا؟ price_source يحدد العمود المستخدم في النظام القديم.
+            For Each row In source.Query(Of LegacyPriceSourceRow)(
+                    "SELECT IFNULL(NULLIF(price_source,''),'(empty)') AS Src, COUNT(*) AS N, " &
+                    "       CAST(SUM(sale_price <> whole_price) AS SIGNED) AS WholeNe, " &
+                    "       CAST(SUM(IFNULL(offer_price,-1) <> sale_price) AS SIGNED) AS OfferNe, " &
+                    "       CAST(SUM(IFNULL(sale_reb7,-1) <> sale_price) AS SIGNED) AS Reb7Ne, " &
+                    "       CAST(SUM(barcode IS NULL OR barcode='') AS SIGNED) AS BarcodeBlank, " &
+                    "       CAST(SUM(offer_price IS NULL) AS SIGNED) AS OfferNull, " &
+                    "       CAST(SUM(offer_price=0) AS SIGNED) AS OfferZero, " &
+                    "       CAST(SUM(sale_price=0) AS SIGNED) AS SaleZero, " &
+                    "       COUNT(DISTINCT TRIM(IFNULL(barcode,''))) AS DistinctBc, " &
+                    "       CAST(MAX(CHAR_LENGTH(TRIM(IFNULL(barcode,'')))) AS SIGNED) AS MaxBcLen " &
+                    "FROM currencies WHERE IS_Deleted=0 GROUP BY Src ORDER BY N DESC LIMIT 10")
+                Console.WriteLine($"  price_source={row.Src} rows={row.N} whole<>sale={row.WholeNe} offer<>sale={row.OfferNe} reb7<>sale={row.Reb7Ne} own-barcode blank={row.BarcodeBlank} offer NULL={row.OfferNull} offer 0={row.OfferZero} sale 0={row.SaleZero} distinct-barcode={row.DistinctBc} maxLen={row.MaxBcLen}")
+            Next
+
+            ' هل سعر البيع في المصدر قيمة مخزّنة ولا مجرد (تكلفة × نسبة)؟
+            For Each rr In source.Query(Of LegacyRatioRow)(
+                    "SELECT ROUND(sale_price/NULLIF(purch_price,0),4) AS Ratio, COUNT(*) AS N " &
+                    "FROM currencies WHERE IS_Deleted=0 AND purch_price>0 GROUP BY Ratio ORDER BY N DESC LIMIT 6")
+                Console.WriteLine($"  sale/cost ratio {rr.Ratio} on {rr.N} items")
+            Next
+        End Using
+        Console.WriteLine($"legacy rows read (read-only): {legacy.Count}")
+
+        Dim editedAfterImport As Long = 0
+        Dim missingInLegacy As Long = 0
+        Dim legacyNoBlank As Long = 0, legacyNoMatchesApp As Long = 0
+        Dim saleDiff As Long = 0, costDiff As Long = 0, wholeDiff As Long = 0, nameDiff As Long = 0
+        Dim samples As New List(Of String)()
+
+        Using target = DbSession.Open(targetConn)
+            For Each t In target.Connection.Query(Of TargetItemRow)(
+                    "SELECT id, code, name_ar AS NameAr, cost_price AS CostPrice, sale_price AS SalePrice, " &
+                    "       wholesale_price AS WholePrice, created_at AS CreatedAt, updated_at AS UpdatedAt FROM items")
+                If t.UpdatedAt > t.CreatedAt.AddSeconds(1) Then editedAfterImport += 1
+                Dim l As LegacyItemRow = Nothing
+                If Not legacy.TryGetValue(t.Id, l) Then
+                    missingInLegacy += 1
+                    Continue For
+                End If
+                legacy.Remove(t.Id)
+
+                Dim changed As New List(Of String)()
+                If t.SalePrice <> l.SalePrice Then saleDiff += 1 : changed.Add($"sale {l.SalePrice:0.####}->{t.SalePrice:0.####}")
+                If t.CostPrice <> l.PurchPrice Then costDiff += 1 : changed.Add($"cost {l.PurchPrice:0.####}->{t.CostPrice:0.####}")
+                If t.WholePrice <> l.WholePrice Then wholeDiff += 1 : changed.Add($"whole {l.WholePrice:0.####}->{t.WholePrice:0.####}")
+                Dim legacyName As String = If(l.Symbol, "").Trim()
+                Dim legacyBc As String = If(l.Barcode, "").Trim()
+                If legacyBc.Length = 0 Then
+                    legacyNoBlank += 1
+                ElseIf String.Equals(legacyBc, If(t.Code, "").Trim(), StringComparison.Ordinal) Then
+                    legacyNoMatchesApp += 1
+                End If
+                If Not String.Equals(legacyName, (If(t.NameAr, "")).Trim(), StringComparison.Ordinal) Then
+                    nameDiff += 1
+                    changed.Add("name changed")
+                End If
+                If changed.Count > 0 AndAlso samples.Count < maxSamples Then
+                    samples.Add($"  #{t.Id} app[{t.Code}] legacy-no[{If(l.CompanyNo, "")}] {legacyName} — " & String.Join(", ", changed))
+                End If
+            Next
+        End Using
+
+        Console.WriteLine("DIFFERENCE vs legacy source")
+        Console.WriteLine($"  app-only items (not in source) : {missingInLegacy}")
+        Console.WriteLine($"  source rows never imported     : {legacy.Count}")
+        Console.WriteLine($"  sale price differs             : {saleDiff}")
+        Console.WriteLine($"  cost price differs             : {costDiff}")
+        Console.WriteLine($"  wholesale price differs        : {wholeDiff}")
+        Console.WriteLine($"  name differs                   : {nameDiff}")
+        Console.WriteLine($"  legacy barcode blank             : {legacyNoBlank}")
+        Console.WriteLine($"  app code == legacy barcode     : {legacyNoMatchesApp}")
+        Console.WriteLine($"  touched in the app after import: {editedAfterImport}")
+        For Each s In samples
+            Console.WriteLine(s)
+        Next
     End Sub
 
     Private Sub UpsertSetting(conn As MySqlConnection, tx As MySqlTransaction, key As String, value As String)
@@ -698,11 +829,47 @@ Friend Class LegacyUnitRow
     Public Property Name As String
 End Class
 
+Friend Class LegacyRatioRow
+    Public Property Ratio As Decimal
+    Public Property N As Long
+End Class
+
+Friend Class CodeOwnerRow
+    Public Property Code As String
+    Public Property Id As Long
+End Class
+
+Friend Class LegacyPriceSourceRow
+    Public Property Src As String
+    Public Property N As Long
+    Public Property WholeNe As Long
+    Public Property OfferNe As Long
+    Public Property Reb7Ne As Long
+    Public Property BarcodeBlank As Long
+    Public Property OfferNull As Long
+    Public Property OfferZero As Long
+    Public Property SaleZero As Long
+    Public Property DistinctBc As Long
+    Public Property MaxBcLen As Long
+End Class
+
+Friend Class TargetItemRow
+    Public Property Id As Long
+    Public Property Code As String
+    Public Property NameAr As String
+    Public Property CostPrice As Decimal
+    Public Property SalePrice As Decimal
+    Public Property WholePrice As Decimal
+    Public Property CreatedAt As DateTime
+    Public Property UpdatedAt As DateTime
+End Class
+
 Friend Class LegacyItemRow
     Public Property Id As Long
     Public Property Symbol As String
     Public Property NameEn As String
     Public Property CompanyNo As String
+    Public Property Barcode As String
     Public Property GroupId As Long?
     Public Property UnitId As Long?
     Public Property IsDeleted As Integer
