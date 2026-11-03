@@ -1,0 +1,1202 @@
+DATABASE: rs_pharmacy
+GENERATED: 2026-10-28 22:24:04
+SERVER: 13.0.2-MariaDB
+====================================================================================================
+BASE TABLES: 68 | VIEWS: 4
+TABLE LIST: accounts_index, app_settings, app_users, areas, audit_log, banks, branches, bridge_log, bridge_map, bridge_state, cities, coboun, companies, countries, count_list, currencies, currencies_group_bak_20261028, curr_barcodes, curr_barcodes_bak_20261028, curr_sup, curr_units, customers, cust_groups, days, delivery_emps, departments, employees, eo_item_img, gard, gard_sub, groups, inv, inv_sub, item_bal, loyalty, loyalty_log, pay_methods, restrictions, restrictions_sub, rs_count, rs_eo_log, rs_eo_map, rs_expenses, rs_safebox, rs_seq, rs_sync, safes, safe_emps, salarypay, salesmen, sandd, sandq, sandqd, sandsd, stocks, stock_emps, tawla, tawla_groups, twreed_srf, twreed_srf_sub, units, users, user_perms, voucher, voucher_cust, voucher_cust_invs, wardya, _orphan_sub
+VIEW LIST: v_inv_99, v_inv_main, v_sales_today, v_stock
+====================================================================================================
+
+## accounts_index  rows=177  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - Code | bigint(20) | null=NO | key=PRI | def=NULL | extra=
+  - AName | text | null=YES | key= | def=NULL | extra=
+  - Nature | int(11) | null=YES | key= | def=NULL | extra=
+  - Type | int(11) | null=YES | key= | def=NULL | extra=
+  - ParentCode | bigint(20) | null=YES | key= | def=NULL | extra=
+  - Date | datetime | null=YES | key= | def=NULL | extra=
+  - UserName | text | null=YES | key= | def=NULL | extra=
+  - IValue | double | null=YES | key= | def=NULL | extra=
+  - FinalAcc | int(11) | null=YES | key= | def=NULL | extra=
+  - Total_Debts | double | null=YES | key= | def=NULL | extra=
+  - Total_Credits | double | null=YES | key= | def=NULL | extra=
+  - Account_Value | double | null=YES | key= | def=NULL | extra=
+  - Acc_branch | int(11) | null=YES | key= | def=NULL | extra=
+  - acc_level | int(11) | null=YES | key= | def=NULL | extra=
+  - is_center | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - default_center | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_type | int(11) | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (Code)
+
+## app_settings  rows=63  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - k | varchar(64) | null=NO | key=PRI | def=NULL | extra=
+  - v | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (k)
+
+## app_users  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - username | varchar(64) | null=NO | key=UNI | def=NULL | extra=
+  - pass_hash | varchar(255) | null=NO | key= | def=NULL | extra=
+  - active | tinyint(4) | null=NO | key= | def=1 | extra=
+  - created_at | timestamp | null=YES | key= | def=current_timestamp() | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+  - username [UNIQUE] (username)
+
+## areas  rows=271  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - city | int(11) | null=YES | key= | def=NULL | extra=
+
+## audit_log  rows=14  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | bigint(20) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - ts | datetime | null=NO | key=MUL | def=NULL | extra=
+  - uid | int(11) | null=NO | key=MUL | def=0 | extra=
+  - uname | varchar(64) | null=NO | key= | def='' | extra=
+  - action | varchar(16) | null=NO | key= | def=NULL | extra=
+  - entity | varchar(32) | null=NO | key=MUL | def=NULL | extra=
+  - entity_id | bigint(20) | null=NO | key= | def=0 | extra=
+  - detail | varchar(500) | null=NO | key= | def='' | extra=
+  - ip | varchar(45) | null=NO | key= | def='' | extra=
+indexes:
+  - audit_ent [INDEX] (entity, entity_id)
+  - audit_ts [INDEX] (ts)
+  - audit_uid [INDEX] (uid)
+  - PRIMARY [UNIQUE] (id)
+
+## banks  rows=5  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - country | int(11) | null=YES | key= | def=NULL | extra=
+  - city | int(11) | null=YES | key= | def=NULL | extra=
+  - area | int(11) | null=YES | key= | def=NULL | extra=
+  - tel | text | null=YES | key= | def=NULL | extra=
+  - mobile | text | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - accountNo | bigint(20) | null=YES | key= | def=NULL | extra=
+
+## branches  rows=1  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - Tel | text | null=YES | key= | def=NULL | extra=
+  - Mobile | text | null=YES | key= | def=NULL | extra=
+  - Fax | text | null=YES | key= | def=NULL | extra=
+  - Email | text | null=YES | key= | def=NULL | extra=
+  - Address | text | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - is_main | tinyint(1) | null=YES | key= | def=NULL | extra=
+
+## bridge_log  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | bigint(20) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - ts | datetime | null=NO | key= | def=NULL | extra=
+  - level | varchar(8) | null=NO | key= | def=NULL | extra=
+  - msg | varchar(255) | null=NO | key= | def=NULL | extra=
+  - ctx | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## bridge_map  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - kind | varchar(16) | null=NO | key=PRI | def=NULL | extra=
+  - local_id | bigint(20) | null=NO | key=PRI | def=NULL | extra=
+  - remote_id | bigint(20) | null=YES | key= | def=NULL | extra=
+  - local_proc | bigint(20) | null=YES | key= | def=NULL | extra=
+  - remote_proc | bigint(20) | null=YES | key= | def=NULL | extra=
+  - origin | char(1) | null=NO | key= | def='L' | extra=
+  - local_hash | char(64) | null=YES | key= | def=NULL | extra=
+  - remote_hash | char(64) | null=YES | key= | def=NULL | extra=
+  - updated_at | datetime | null=NO | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (kind, local_id)
+  - uq_bridge_remote [UNIQUE] (kind, remote_id)
+
+## bridge_state  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - k | varchar(64) | null=NO | key=PRI | def=NULL | extra=
+  - v | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (k)
+
+## cities  rows=29  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - country | int(11) | null=YES | key= | def=NULL | extra=
+
+## coboun  rows=2  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - code_name | text | null=YES | key= | def=NULL | extra=
+  - date_start | date | null=YES | key= | def=NULL | extra=
+  - date_end | date | null=YES | key= | def=NULL | extra=
+  - active | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - discount | int(11) | null=YES | key= | def=NULL | extra=
+  - for_clients | int(11) | null=YES | key= | def=NULL | extra=
+  - Is_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - clients_group | int(11) | null=YES | key= | def=NULL | extra=
+  - Branch | int(11) | null=YES | key= | def=NULL | extra=
+
+## companies  rows=1  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - Tel | text | null=YES | key= | def=NULL | extra=
+  - Mobile | text | null=YES | key= | def=NULL | extra=
+  - Fax | text | null=YES | key= | def=NULL | extra=
+  - Email | text | null=YES | key= | def=NULL | extra=
+  - Address | text | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - dbname | text | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - name_en | varchar(128) | null=YES | key= | def='' | extra=
+  - activity | varchar(128) | null=YES | key= | def='' | extra=
+  - license_no | varchar(64) | null=YES | key= | def='' | extra=
+  - comm_reg | varchar(64) | null=YES | key= | def='' | extra=
+  - tax_no | varchar(64) | null=YES | key= | def='' | extra=
+  - tax_pct | double | null=YES | key= | def=0 | extra=
+  - email2 | varchar(128) | null=YES | key= | def='' | extra=
+  - website | varchar(128) | null=YES | key= | def='' | extra=
+  - address2 | text | null=YES | key= | def=NULL | extra=
+
+## countries  rows=19  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - nationality | text | null=YES | key= | def=NULL | extra=
+  - code | text | null=YES | key= | def=NULL | extra=
+
+## count_list  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - code | int(11) | null=NO | key= | def=NULL | extra=
+  - name | text | null=NO | key= | def=NULL | extra=
+  - counted | double | null=NO | key= | def=0 | extra=
+  - balance | double | null=NO | key= | def=0 | extra=
+  - exp_date | varchar(12) | null=NO | key= | def='' | extra=
+  - note | text | null=YES | key= | def=NULL | extra=
+  - username | varchar(64) | null=NO | key= | def='' | extra=
+  - posted | tinyint(4) | null=NO | key= | def=0 | extra=
+  - created | datetime | null=YES | key= | def=current_timestamp() | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## currencies  rows=29595  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key=UNI | def=NULL | extra=
+  - symbol | text | null=YES | key= | def=NULL | extra=
+  - nameEN | text | null=YES | key= | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+  - is_mezan | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - group_id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - unit | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - purch_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - purchdollar | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - sale_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - price_source | varchar(16) | null=YES | key= | def=NULL | extra=
+  - saledollar | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - sale_reb7 | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - limit | int(11) | null=YES | key= | def=NULL | extra=
+  - tax | decimal(6,2) | null=YES | key= | def=NULL | extra=
+  - discount | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - tax_group | int(11) | null=YES | key= | def=NULL | extra=
+  - minprice | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - group2 | int(11) | null=YES | key= | def=NULL | extra=
+  - wholesale | int(11) | null=YES | key= | def=NULL | extra=
+  - offersale | int(11) | null=YES | key= | def=NULL | extra=
+  - whole_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - G_reb7 | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - offer_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - D_reb7 | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - no | text | null=YES | key= | def=NULL | extra=
+  - ref_no | text | null=YES | key= | def=NULL | extra=
+  - ref_vendor | int(11) | null=YES | key= | def=NULL | extra=
+  - ref_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - ref_quan | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - outoffer | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - stock_address | text | null=YES | key= | def=NULL | extra=
+  - i1 | int(11) | null=YES | key= | def=NULL | extra=
+  - i2 | int(11) | null=YES | key= | def=NULL | extra=
+  - imge | text | null=YES | key= | def=NULL | extra=
+  - web_sku | text | null=YES | key= | def=NULL | extra=
+  - web_item_category_id | text | null=YES | key= | def=NULL | extra=
+  - chk_fast_menu | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - item_orders | int(11) | null=YES | key= | def=NULL | extra=
+  - stock | int(11) | null=YES | key= | def=NULL | extra=
+  - slug | text | null=YES | key= | def=NULL | extra=
+  - offer_until | datetime | null=YES | key= | def=NULL | extra=
+indexes:
+  - ix_cur_grp [INDEX] (group_id)
+  - ix_cur_unit [INDEX] (unit)
+  - ux_cur_id [UNIQUE] (id)
+
+## currencies_group_bak_20261028  rows=29595  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - group_id | int(11) | null=YES | key= | def=NULL | extra=
+
+## curr_barcodes  rows=29576  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - curr | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - ux_curr_barcode [UNIQUE] (curr, barcode)
+
+## curr_barcodes_bak_20261028  rows=998  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - curr | int(11) | null=YES | key= | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+
+## curr_sup  rows=4  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - curr | int(11) | null=YES | key= | def=NULL | extra=
+  - sup_id | int(11) | null=YES | key= | def=NULL | extra=
+
+## curr_units  rows=5  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - curr | int(11) | null=YES | key= | def=NULL | extra=
+  - unit | int(11) | null=YES | key= | def=NULL | extra=
+  - perc | double | null=YES | key= | def=NULL | extra=
+  - purch | double | null=YES | key= | def=NULL | extra=
+  - sale | double | null=YES | key= | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+  - offer | double | null=YES | key= | def=NULL | extra=
+
+## customers  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key=UNI | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - country | int(11) | null=YES | key= | def=NULL | extra=
+  - city | int(11) | null=YES | key= | def=NULL | extra=
+  - area | int(11) | null=YES | key= | def=NULL | extra=
+  - act | int(11) | null=YES | key= | def=NULL | extra=
+  - national_id | text | null=YES | key= | def=NULL | extra=
+  - tel | text | null=YES | key= | def=NULL | extra=
+  - mobile | text | null=YES | key= | def=NULL | extra=
+  - fax | text | null=YES | key= | def=NULL | extra=
+  - email | text | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - maxdepit | double | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - tax_no | text | null=YES | key= | def=NULL | extra=
+  - sec | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - discount_balance | double | null=YES | key= | def=NULL | extra=
+  - type_s | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - imge | text | null=YES | key= | def=NULL | extra=
+  - nation | text | null=YES | key= | def=NULL | extra=
+  - accountNo | bigint(20) | null=YES | key= | def=NULL | extra=
+  - mobile2 | text | null=YES | key= | def=NULL | extra=
+  - mobile3 | text | null=YES | key= | def=NULL | extra=
+  - mobile4 | text | null=YES | key= | def=NULL | extra=
+  - mobile5 | text | null=YES | key= | def=NULL | extra=
+  - Address1 | text | null=YES | key= | def=NULL | extra=
+  - Address2 | text | null=YES | key= | def=NULL | extra=
+  - Address3 | text | null=YES | key= | def=NULL | extra=
+  - cust_user | text | null=YES | key= | def=NULL | extra=
+  - cust_pass | text | null=YES | key= | def=NULL | extra=
+  - delevry_costs | int(11) | null=YES | key= | def=NULL | extra=
+indexes:
+  - ux_cust_id [UNIQUE] (id)
+
+## cust_groups  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - name | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## days  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - wardya_no | int(11) | null=YES | key= | def=NULL | extra=
+  - date_open | datetime | null=YES | key= | def=NULL | extra=
+  - user_open | int(11) | null=YES | key= | def=NULL | extra=
+  - date_close | datetime | null=YES | key= | def=NULL | extra=
+  - user_close | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_open | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - net | double | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - day_no | int(11) | null=YES | key= | def=NULL | extra=
+  - pc_open | text | null=YES | key= | def=NULL | extra=
+  - pc_close | text | null=YES | key= | def=NULL | extra=
+
+## delivery_emps  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - name | text | null=YES | key= | def=NULL | extra=
+  - tel | text | null=YES | key= | def=NULL | extra=
+  - address | text | null=YES | key= | def=NULL | extra=
+  - is_deleted | tinyint(1) | null=YES | key= | def=0 | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## departments  rows=4  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - manag_id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+
+## employees  rows=2  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - manag | int(11) | null=YES | key= | def=NULL | extra=
+  - dep | int(11) | null=YES | key= | def=NULL | extra=
+  - state | int(11) | null=YES | key= | def=NULL | extra=
+  - job | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - birth_date | datetime | null=YES | key= | def=NULL | extra=
+  - insurance_no | int(11) | null=YES | key= | def=NULL | extra=
+  - work_date | datetime | null=YES | key= | def=NULL | extra=
+  - marital_state | int(11) | null=YES | key= | def=NULL | extra=
+  - nationality | int(11) | null=YES | key= | def=NULL | extra=
+  - sex | text | null=YES | key= | def=NULL | extra=
+  - tel | text | null=YES | key= | def=NULL | extra=
+  - mobile | text | null=YES | key= | def=NULL | extra=
+  - email | text | null=YES | key= | def=NULL | extra=
+  - address | text | null=YES | key= | def=NULL | extra=
+  - NatO | int(11) | null=YES | key= | def=NULL | extra=
+  - NatOI | text | null=YES | key= | def=NULL | extra=
+  - NatODateS | datetime | null=YES | key= | def=NULL | extra=
+  - NatODateE | datetime | null=YES | key= | def=NULL | extra=
+  - NatT | int(11) | null=YES | key= | def=NULL | extra=
+  - NatTI | text | null=YES | key= | def=NULL | extra=
+  - NatTDateS | datetime | null=YES | key= | def=NULL | extra=
+  - NatTDateE | datetime | null=YES | key= | def=NULL | extra=
+  - StudO | text | null=YES | key= | def=NULL | extra=
+  - StudOL | int(11) | null=YES | key= | def=NULL | extra=
+  - StudT | text | null=YES | key= | def=NULL | extra=
+  - StudTL | int(11) | null=YES | key= | def=NULL | extra=
+  - FBCode | int(11) | null=YES | key= | def=NULL | extra=
+  - FbRoll | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - salary_basic | double | null=YES | key= | def=NULL | extra=
+  - salary_add | double | null=YES | key= | def=NULL | extra=
+  - salary_other | double | null=YES | key= | def=NULL | extra=
+  - house | double | null=YES | key= | def=NULL | extra=
+  - food | double | null=YES | key= | def=NULL | extra=
+  - travel | double | null=YES | key= | def=NULL | extra=
+  - medical | double | null=YES | key= | def=NULL | extra=
+  - CreatedBy | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - Sallary_Roll | int(11) | null=YES | key= | def=NULL | extra=
+
+## eo_item_img  rows=1  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - path | varchar(255) | null=NO | key= | def='' | extra=
+  - url | varchar(255) | null=NO | key= | def='' | extra=
+  - updated | datetime | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## gard  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - user_id | int(11) | null=YES | key= | def=NULL | extra=
+  - emp_name | text | null=YES | key= | def=NULL | extra=
+  - emp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - tot_quntity | int(11) | null=YES | key= | def=NULL | extra=
+  - tot_items | int(11) | null=YES | key= | def=NULL | extra=
+  - tot_sale | int(11) | null=YES | key= | def=NULL | extra=
+  - tot_purch | int(11) | null=YES | key= | def=NULL | extra=
+  - is_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - safe | int(11) | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## gard_sub  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - sub_id | int(11) | null=YES | key= | def=NULL | extra=
+  - GARD_id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - code | text | null=YES | key= | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+  - item_name | text | null=YES | key= | def=NULL | extra=
+  - unit_name | text | null=YES | key= | def=NULL | extra=
+  - group_name | text | null=YES | key= | def=NULL | extra=
+  - purch | int(11) | null=YES | key= | def=NULL | extra=
+  - purchD | int(11) | null=YES | key= | def=NULL | extra=
+  - purchLD | text | null=YES | key= | def=NULL | extra=
+  - Sale | int(11) | null=YES | key= | def=NULL | extra=
+  - SaleD | int(11) | null=YES | key= | def=NULL | extra=
+  - saleLD | text | null=YES | key= | def=NULL | extra=
+  - mezan | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - quintity | int(11) | null=YES | key= | def=NULL | extra=
+  - quintityD | text | null=YES | key= | def=NULL | extra=
+  - tot_sale | int(11) | null=YES | key= | def=NULL | extra=
+  - tot_purch | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - sys_Qty | int(11) | null=YES | key= | def=NULL | extra=
+  - settlement | int(11) | null=YES | key= | def=NULL | extra=
+  - adds | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - settlement_done | tinyint(1) | null=YES | key= | def=NULL | extra=
+indexes:
+  - ix_gs_gard [INDEX] (GARD_id)
+
+## groups  rows=7  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - nameEN | text | null=YES | key= | def=NULL | extra=
+  - color | int(11) | null=YES | key= | def=NULL | extra=
+  - printer | text | null=YES | key= | def=NULL | extra=
+  - parent_id | int(11) | null=YES | key= | def=NULL | extra=
+  - dis | int(11) | null=YES | key= | def=NULL | extra=
+  - main_groups | int(11) | null=YES | key= | def=NULL | extra=
+  - PACKUP_Printers | text | null=YES | key= | def=NULL | extra=
+  - printer_count | int(11) | null=YES | key= | def=NULL | extra=
+  - PACKUP_Printers_count | int(11) | null=YES | key= | def=NULL | extra=
+  - web_id | text | null=YES | key= | def=NULL | extra=
+  - web_cat_parent_id | text | null=YES | key= | def=NULL | extra=
+  - group_orders | int(11) | null=YES | key= | def=NULL | extra=
+  - image_path | text | null=YES | key= | def=NULL | extra=
+
+## inv  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - proc_id | int(11) | null=YES | key=UNI | def=NULL | extra=
+  - proc_type | int(11) | null=YES | key= | def=NULL | extra=
+  - id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - date | datetime | null=YES | key=MUL | def=NULL | extra=
+  - inv_type | int(11) | null=YES | key= | def=NULL | extra=
+  - safe | int(11) | null=YES | key= | def=NULL | extra=
+  - stock | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - sales_emp | int(11) | null=YES | key= | def=NULL | extra=
+  - tot_purch | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - tot_sale | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - tot_net | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - purch_rest_id | int(11) | null=YES | key= | def=NULL | extra=
+  - sale_rest_id | int(11) | null=YES | key= | def=NULL | extra=
+  - InvId_Return | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - IS_Buy | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key=MUL | def=NULL | extra=
+  - user_IS_Deleted | int(11) | null=YES | key= | def=NULL | extra=
+  - minus | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - paid | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - salesman | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - tax | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - pay_type | int(11) | null=YES | key= | def=NULL | extra=
+  - bank | bigint(20) | null=YES | key= | def=NULL | extra=
+  - tax_ats | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - disc | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - refno | text | null=YES | key= | def=NULL | extra=
+  - cust_disc | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - custdiscadd | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - rest_type | int(11) | null=YES | key= | def=NULL | extra=
+  - tawla | int(11) | null=YES | key= | def=NULL | extra=
+  - delivery | int(11) | null=YES | key= | def=NULL | extra=
+  - reserv_custname | text | null=YES | key= | def=NULL | extra=
+  - reserv_custtel | text | null=YES | key= | def=NULL | extra=
+  - reserv_custtel2 | text | null=YES | key= | def=NULL | extra=
+  - reserv_custadd | text | null=YES | key= | def=NULL | extra=
+  - reserv_date | datetime | null=YES | key= | def=NULL | extra=
+  - reserv_notes | text | null=YES | key= | def=NULL | extra=
+  - mobapp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - fees | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - client_type | int(11) | null=YES | key= | def=NULL | extra=
+  - client_name | text | null=YES | key= | def=NULL | extra=
+  - client_mobile | text | null=YES | key= | def=NULL | extra=
+  - costadd | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - is_tfseel | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - is_tfseelrec | int(11) | null=YES | key= | def=NULL | extra=
+  - expense1 | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - expense2 | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - expense3 | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - expense4 | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - expense5 | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - totexpense | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - expenseacc1 | int(11) | null=YES | key= | def=NULL | extra=
+  - expenseacc2 | int(11) | null=YES | key= | def=NULL | extra=
+  - expenseacc3 | int(11) | null=YES | key= | def=NULL | extra=
+  - expenseacc4 | int(11) | null=YES | key= | def=NULL | extra=
+  - expenseacc5 | int(11) | null=YES | key= | def=NULL | extra=
+  - offer_id | int(11) | null=YES | key= | def=NULL | extra=
+  - tawla_paid | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - is_mat | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - is_manfc | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - is_complete | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - network_type | int(11) | null=YES | key= | def=NULL | extra=
+  - cash_part | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - network_part | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - center | int(11) | null=YES | key= | def=NULL | extra=
+  - agel_date | datetime | null=YES | key= | def=NULL | extra=
+  - agel_part | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - bank_part | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - bank2 | int(11) | null=YES | key= | def=NULL | extra=
+  - check_refno | text | null=YES | key= | def=NULL | extra=
+  - emp_part | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - emp | int(11) | null=YES | key= | def=NULL | extra=
+  - tab3tax | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - IS_updated | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - user_IS_updated | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Temp | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - dlevman | int(11) | null=YES | key= | def=NULL | extra=
+  - kiychen_done | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - rest_no_day | int(11) | null=YES | key= | def=NULL | extra=
+  - coboun | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - coboun_id | int(11) | null=YES | key= | def=NULL | extra=
+  - coboun_Dis | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - date_delevGoes | datetime | null=YES | key= | def=NULL | extra=
+  - date_delevCome | datetime | null=YES | key= | def=NULL | extra=
+  - date_come | datetime | null=YES | key= | def=NULL | extra=
+  - date_go | datetime | null=YES | key= | def=NULL | extra=
+  - voucher_code | text | null=YES | key= | def=NULL | extra=
+  - voucher_value | int(11) | null=YES | key= | def=NULL | extra=
+  - pc | text | null=YES | key= | def=NULL | extra=
+  - printed_recipt | datetime | null=YES | key= | def=NULL | extra=
+  - persons | int(11) | null=YES | key= | def=NULL | extra=
+  - inv_notes | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - ix_inv_branch_id [INDEX] (branch, id)
+  - ix_inv_branch_proc [INDEX] (branch, proc_id)
+  - ix_inv_cust [INDEX] (cust_id)
+  - ix_inv_dd [INDEX] (date)
+  - ix_inv_id [INDEX] (id)
+  - ix_inv_proc [INDEX] (proc_id)
+  - ix_inv_sm [INDEX] (salesman)
+  - ix_inv_tp [INDEX] (IS_Deleted, IS_Buy, proc_type)
+  - ux_inv_proc_id [UNIQUE] (proc_id)
+
+## inv_sub  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key=UNI | def=NULL | extra=
+  - proc_id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - proc_type | int(11) | null=YES | key= | def=NULL | extra=
+  - currency_from | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - unit | int(11) | null=YES | key= | def=NULL | extra=
+  - i1 | bigint(20) | null=YES | key= | def=NULL | extra=
+  - i2 | bigint(20) | null=YES | key= | def=NULL | extra=
+  - val | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - val1 | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - exchange_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - expire_date | datetime | null=YES | key= | def=NULL | extra=
+  - taxperc | decimal(6,2) | null=YES | key= | def=NULL | extra=
+  - taxval | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - discount | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - expense | decimal(14,2) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - Txtr | text | null=YES | key= | def=NULL | extra=
+  - kiychen_printed | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - invpurch | text | null=YES | key= | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+  - sale_price | decimal(12,4) | null=YES | key= | def=NULL | extra=
+  - kiychen_ok | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_no | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_done | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_goes | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_note | text | null=YES | key= | def=NULL | extra=
+  - date_goes | datetime | null=YES | key= | def=NULL | extra=
+  - date_date_Done | datetime | null=YES | key= | def=NULL | extra=
+indexes:
+  - ix_sub_cur [INDEX] (currency_from)
+  - ix_sub_proc [INDEX] (proc_id)
+  - ux_sub_id [UNIQUE] (id)
+
+## item_bal  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - bal | decimal(14,4) | null=NO | key= | def=0.0000 | extra=
+  - updated | datetime | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## loyalty  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - cust_id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - points | int(11) | null=NO | key= | def=0 | extra=
+  - total_earned | int(11) | null=NO | key= | def=0 | extra=
+  - total_redeemed | int(11) | null=NO | key= | def=0 | extra=
+  - updated_at | datetime | null=YES | key= | def=current_timestamp() | extra=on update current_timestamp()
+indexes:
+  - PRIMARY [UNIQUE] (cust_id)
+
+## loyalty_log  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - cust_id | int(11) | null=NO | key=MUL | def=NULL | extra=
+  - points | int(11) | null=NO | key= | def=NULL | extra=
+  - type | enum('earn','redeem','adjust') | null=NO | key= | def=NULL | extra=
+  - inv_id | int(11) | null=YES | key= | def=NULL | extra=
+  - note | text | null=YES | key= | def=NULL | extra=
+  - created_at | datetime | null=YES | key= | def=current_timestamp() | extra=
+indexes:
+  - idx_cust [INDEX] (cust_id)
+  - PRIMARY [UNIQUE] (id)
+
+## pay_methods  rows=4  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - name | varchar(64) | null=NO | key= | def=NULL | extra=
+  - active | tinyint(4) | null=NO | key= | def=1 | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## restrictions  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - date | datetime | null=YES | key=MUL | def=NULL | extra=
+  - doc_no | int(11) | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - state | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - omla | int(11) | null=YES | key= | def=NULL | extra=
+  - omlaval | double | null=YES | key= | def=NULL | extra=
+indexes:
+  - ix_r_dt [INDEX] (date)
+  - ix_r_id [INDEX] (id)
+
+## restrictions_sub  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - res_id | int(11) | null=YES | key=MUL | def=NULL | extra=
+  - date | datetime | null=YES | key=MUL | def=NULL | extra=
+  - dept | double | null=YES | key= | def=NULL | extra=
+  - credit | double | null=YES | key= | def=NULL | extra=
+  - acc_no | bigint(20) | null=YES | key=MUL | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - omla | int(11) | null=YES | key= | def=NULL | extra=
+  - omlaval | double | null=YES | key= | def=NULL | extra=
+  - center | int(11) | null=YES | key= | def=NULL | extra=
+indexes:
+  - ix_rs_acc [INDEX] (acc_no)
+  - ix_rs_dt [INDEX] (date)
+  - ix_rs_res [INDEX] (res_id)
+
+## rs_count  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - code | int(11) | null=NO | key= | def=NULL | extra=
+  - counted | double | null=NO | key= | def=0 | extra=
+  - created | datetime | null=YES | key= | def=current_timestamp() | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## rs_eo_log  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - dt | datetime | null=YES | key= | def=current_timestamp() | extra=
+  - rs_id | int(11) | null=YES | key= | def=NULL | extra=
+  - eo_id | int(11) | null=YES | key= | def=NULL | extra=
+  - qty | double | null=YES | key= | def=NULL | extra=
+  - note | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## rs_eo_map  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - rs_id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - eo_id | int(11) | null=NO | key= | def=NULL | extra=
+  - slug | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (rs_id)
+
+## rs_expenses  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - code | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (code)
+
+## rs_safebox  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - safe_id | int(11) | null=NO | key= | def=NULL | extra=
+  - dt | date | null=NO | key= | def=NULL | extra=
+  - kind | varchar(8) | null=NO | key= | def=NULL | extra=
+  - amount | double | null=NO | key= | def=0 | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - ref_no | int(11) | null=YES | key= | def=0 | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## rs_seq  rows=11  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - name | varchar(32) | null=NO | key=PRI | def=NULL | extra=
+  - val | bigint(20) | null=NO | key= | def=0 | extra=
+indexes:
+  - PRIMARY [UNIQUE] (name)
+
+## rs_sync  rows=4  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - k | varchar(64) | null=NO | key=PRI | def=NULL | extra=
+  - v | text | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (k)
+
+## safes  rows=2  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - status | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Default | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - address | text | null=YES | key= | def=NULL | extra=
+  - tel | text | null=YES | key= | def=NULL | extra=
+  - showdata | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - mob | text | null=YES | key= | def=NULL | extra=
+  - accountNo | bigint(20) | null=YES | key= | def=NULL | extra=
+  - online | tinyint(1) | null=YES | key= | def=NULL | extra=
+
+## safe_emps  rows=2  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - safe_id | int(11) | null=YES | key= | def=NULL | extra=
+  - emp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+
+## salarypay  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=auto_increment
+  - emp | int(11) | null=NO | key=MUL | def=NULL | extra=
+  - month | int(11) | null=NO | key= | def=NULL | extra=
+  - year | int(11) | null=NO | key= | def=NULL | extra=
+  - salary_net | double | null=NO | key= | def=0 | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - emp_resp | varchar(64) | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+  - ux_emp_my [UNIQUE] (emp, month, year)
+
+## salesmen  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - comm | double | null=YES | key= | def=NULL | extra=
+  - tel | text | null=YES | key= | def=NULL | extra=
+  - mobile | text | null=YES | key= | def=NULL | extra=
+  - email | text | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - dlev | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - IS_EMP | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - emp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+
+## sandd  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - emp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_id | int(11) | null=YES | key= | def=NULL | extra=
+  - val | double | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - safe_bank_id | int(11) | null=YES | key= | def=NULL | extra=
+  - sales_emp | int(11) | null=YES | key= | def=NULL | extra=
+  - check_no | text | null=YES | key= | def=NULL | extra=
+  - check_date | datetime | null=YES | key= | def=NULL | extra=
+  - checkbank | text | null=YES | key= | def=NULL | extra=
+  - check_state | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - rest_id | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - proc_id | int(11) | null=YES | key= | def=NULL | extra=
+
+## sandq  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - cust_id | int(11) | null=YES | key= | def=NULL | extra=
+  - val | double | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - safe_bank_id | int(11) | null=YES | key= | def=NULL | extra=
+  - sales_emp | int(11) | null=YES | key= | def=NULL | extra=
+  - check_no | text | null=YES | key= | def=NULL | extra=
+  - check_date | datetime | null=YES | key= | def=NULL | extra=
+  - checkbank | text | null=YES | key= | def=NULL | extra=
+  - check_state | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - rest_id | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - is_installment | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - installment_date | datetime | null=YES | key= | def=NULL | extra=
+  - proc_id | int(11) | null=YES | key= | def=NULL | extra=
+
+## sandqd  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - emp_person | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_id | int(11) | null=YES | key= | def=NULL | extra=
+  - acc_code | bigint(20) | null=YES | key= | def=NULL | extra=
+  - val | double | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - safe_bank_id | bigint(20) | null=YES | key= | def=NULL | extra=
+  - sales_emp | int(11) | null=YES | key= | def=NULL | extra=
+  - check_no | text | null=YES | key= | def=NULL | extra=
+  - check_date | datetime | null=YES | key= | def=NULL | extra=
+  - checkbank | text | null=YES | key= | def=NULL | extra=
+  - check_state | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - rest_id | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - center | int(11) | null=YES | key= | def=NULL | extra=
+
+## sandsd  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - emp_person | int(11) | null=YES | key= | def=NULL | extra=
+  - emp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - acc_code | bigint(20) | null=YES | key= | def=NULL | extra=
+  - val | double | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - safe_bank_id | bigint(20) | null=YES | key= | def=NULL | extra=
+  - sales_emp | int(11) | null=YES | key= | def=NULL | extra=
+  - check_no | text | null=YES | key= | def=NULL | extra=
+  - check_date | datetime | null=YES | key= | def=NULL | extra=
+  - checkbank | text | null=YES | key= | def=NULL | extra=
+  - check_state | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - rest_id | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - center | int(11) | null=YES | key= | def=NULL | extra=
+  - typesanad | int(11) | null=YES | key= | def=NULL | extra=
+
+## stocks  rows=2  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - status | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_Default | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - accountNo | bigint(20) | null=YES | key= | def=NULL | extra=
+  - online | tinyint(1) | null=YES | key= | def=NULL | extra=
+
+## stock_emps  rows=3  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - stock_id | int(11) | null=YES | key= | def=NULL | extra=
+  - emp_id | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+
+## tawla  rows=4  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - tawla_group | text | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - open_price_h | int(11) | null=YES | key= | def=NULL | extra=
+  - open_price_m | int(11) | null=YES | key= | def=NULL | extra=
+  - model | text | null=YES | key= | def=NULL | extra=
+  - details1 | text | null=YES | key= | def=NULL | extra=
+  - details2 | text | null=YES | key= | def=NULL | extra=
+  - details3 | text | null=YES | key= | def=NULL | extra=
+  - details4 | text | null=YES | key= | def=NULL | extra=
+  - details5 | text | null=YES | key= | def=NULL | extra=
+  - details6 | text | null=YES | key= | def=NULL | extra=
+  - details7 | text | null=YES | key= | def=NULL | extra=
+  - details8 | text | null=YES | key= | def=NULL | extra=
+  - details9 | text | null=YES | key= | def=NULL | extra=
+  - chk_location | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - x | int(11) | null=YES | key= | def=NULL | extra=
+  - y | int(11) | null=YES | key= | def=NULL | extra=
+  - H | int(11) | null=YES | key= | def=NULL | extra=
+  - w | int(11) | null=YES | key= | def=NULL | extra=
+  - Person | int(11) | null=YES | key= | def=NULL | extra=
+
+## tawla_groups  rows=2  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+
+## twreed_srf  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - no | int(11) | null=YES | key= | def=NULL | extra=
+  - user_id | int(11) | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - date | datetime | null=YES | key= | def=NULL | extra=
+  - safe | int(11) | null=YES | key= | def=NULL | extra=
+  - refno | text | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - Gard_id | int(11) | null=YES | key= | def=NULL | extra=
+  - is_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+
+## twreed_srf_sub  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - proc_id | int(11) | null=YES | key= | def=NULL | extra=
+  - item | int(11) | null=YES | key= | def=NULL | extra=
+  - group_id | int(11) | null=YES | key= | def=NULL | extra=
+  - quan | double | null=YES | key= | def=NULL | extra=
+  - totquan | double | null=YES | key= | def=NULL | extra=
+  - price | double | null=YES | key= | def=NULL | extra=
+  - sum | double | null=YES | key= | def=NULL | extra=
+
+## units  rows=6  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - count | int(11) | null=YES | key= | def=NULL | extra=
+
+## users  rows=3  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - emp | int(11) | null=YES | key= | def=NULL | extra=
+  - username | text | null=YES | key= | def=NULL | extra=
+  - pwd | text | null=YES | key= | def=NULL | extra=
+  - edit_inv | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - IS_Deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - edit_disc | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - edit_price | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - edit_date | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - item_disc | double | null=YES | key= | def=NULL | extra=
+  - inv_disc | double | null=YES | key= | def=NULL | extra=
+indexes:
+  - PRIMARY [UNIQUE] (id)
+
+## user_perms  rows=9  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - user_id | int(11) | null=NO | key=PRI | def=NULL | extra=
+  - perm | varchar(64) | null=NO | key=PRI | def=NULL | extra=
+  - val | tinyint(1) | null=NO | key= | def=0 | extra=
+indexes:
+  - PRIMARY [UNIQUE] (user_id, perm)
+
+## voucher  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - name | text | null=YES | key= | def=NULL | extra=
+  - code | text | null=YES | key= | def=NULL | extra=
+  - type | int(11) | null=YES | key= | def=NULL | extra=
+  - used | int(11) | null=YES | key= | def=NULL | extra=
+  - date_create | datetime | null=YES | key= | def=NULL | extra=
+  - date_end | datetime | null=YES | key= | def=NULL | extra=
+  - value | int(11) | null=YES | key= | def=NULL | extra=
+  - used_count | int(11) | null=YES | key= | def=NULL | extra=
+  - vaild | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - design | int(11) | null=YES | key= | def=NULL | extra=
+  - is_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - user_deleted | int(11) | null=YES | key= | def=NULL | extra=
+  - date_deleted | datetime | null=YES | key= | def=NULL | extra=
+
+## voucher_cust  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_id | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_name | text | null=YES | key= | def=NULL | extra=
+  - cust_mob | text | null=YES | key= | def=NULL | extra=
+  - voucher_id | int(11) | null=YES | key= | def=NULL | extra=
+  - c_date_create | date | null=YES | key= | def=NULL | extra=
+  - c_date_end | date | null=YES | key= | def=NULL | extra=
+  - c_value | int(11) | null=YES | key= | def=NULL | extra=
+  - vaild | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - design | int(11) | null=YES | key= | def=NULL | extra=
+  - is_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - c_used | int(11) | null=YES | key= | def=NULL | extra=
+  - c_used_Count | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_voucher_id | text | null=YES | key= | def=NULL | extra=
+
+## voucher_cust_invs  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - cust_voucher_id | text | null=YES | key= | def=NULL | extra=
+  - inv_invproc | int(11) | null=YES | key= | def=NULL | extra=
+  - inv_date | datetime | null=YES | key= | def=NULL | extra=
+  - inv_tot | int(11) | null=YES | key= | def=NULL | extra=
+  - inv_totVoucher | int(11) | null=YES | key= | def=NULL | extra=
+  - user_create | int(11) | null=YES | key= | def=NULL | extra=
+  - is_deleted | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - deleted_date | datetime | null=YES | key= | def=NULL | extra=
+  - user_deleted_id | int(11) | null=YES | key= | def=NULL | extra=
+
+## wardya  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - wardya_no | int(11) | null=YES | key= | def=NULL | extra=
+  - date_open | datetime | null=YES | key= | def=NULL | extra=
+  - user_open | int(11) | null=YES | key= | def=NULL | extra=
+  - date_close | datetime | null=YES | key= | def=NULL | extra=
+  - user_close | int(11) | null=YES | key= | def=NULL | extra=
+  - IS_open | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - net | double | null=YES | key= | def=NULL | extra=
+  - day_no | int(11) | null=YES | key= | def=NULL | extra=
+  - branch | int(11) | null=YES | key= | def=NULL | extra=
+  - close_remotly | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - pc_open | text | null=YES | key= | def=NULL | extra=
+  - pc_close | text | null=YES | key= | def=NULL | extra=
+
+## _orphan_sub  rows=0  engine=InnoDB  collation=utf8mb4_unicode_ci
+columns:
+  - id | int(11) | null=YES | key= | def=NULL | extra=
+  - proc_id | int(11) | null=YES | key= | def=NULL | extra=
+  - proc_type | int(11) | null=YES | key= | def=NULL | extra=
+  - currency_from | int(11) | null=YES | key= | def=NULL | extra=
+  - unit | int(11) | null=YES | key= | def=NULL | extra=
+  - i1 | bigint(20) | null=YES | key= | def=NULL | extra=
+  - i2 | bigint(20) | null=YES | key= | def=NULL | extra=
+  - val | double | null=YES | key= | def=NULL | extra=
+  - val1 | double | null=YES | key= | def=NULL | extra=
+  - exchange_price | double | null=YES | key= | def=NULL | extra=
+  - expire_date | datetime | null=YES | key= | def=NULL | extra=
+  - taxperc | double | null=YES | key= | def=NULL | extra=
+  - taxval | double | null=YES | key= | def=NULL | extra=
+  - discount | double | null=YES | key= | def=NULL | extra=
+  - expense | double | null=YES | key= | def=NULL | extra=
+  - notes | text | null=YES | key= | def=NULL | extra=
+  - Txtr | text | null=YES | key= | def=NULL | extra=
+  - kiychen_printed | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - invpurch | text | null=YES | key= | def=NULL | extra=
+  - barcode | text | null=YES | key= | def=NULL | extra=
+  - sale_price | int(11) | null=YES | key= | def=NULL | extra=
+  - kiychen_ok | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_no | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_done | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_goes | tinyint(1) | null=YES | key= | def=NULL | extra=
+  - kiychen_note | text | null=YES | key= | def=NULL | extra=
+  - date_goes | datetime | null=YES | key= | def=NULL | extra=
+  - date_date_Done | datetime | null=YES | key= | def=NULL | extra=
+
+## VIEW v_inv_99
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_inv_99` AS select `inv`.`proc_id` AS `proc_id`,`inv`.`proc_type` AS `proc_type`,`inv`.`id` AS `id`,`inv`.`date` AS `date`,`inv`.`inv_type` AS `inv_type`,`inv`.`safe` AS `safe`,`inv`.`stock` AS `stock`,`inv`.`cust_id` AS `cust_id`,`inv`.`sales_emp` AS `sales_emp`,`inv`.`tot_purch` AS `tot_purch`,`inv`.`tot_sale` AS `tot_sale`,`inv`.`tot_net` AS `tot_net`,`inv`.`purch_rest_id` AS `purch_rest_id`,`inv`.`sale_rest_id` AS `sale_rest_id`,`inv`.`InvId_Return` AS `InvId_Return`,`inv`.`branch` AS `branch`,`inv`.`IS_Buy` AS `IS_Buy`,`inv`.`IS_Deleted` AS `IS_Deleted`,`inv`.`user_IS_Deleted` AS `user_IS_Deleted`,`inv`.`minus` AS `minus`,`inv`.`paid` AS `paid`,`inv`.`salesman` AS `salesman`,`inv`.`tax` AS `tax`,`inv`.`pay_type` AS `pay_type`,`inv`.`bank` AS `bank`,`inv`.`tax_ats` AS `tax_ats`,`inv`.`disc` AS `disc`,`inv`.`refno` AS `refno`,`inv`.`cust_disc` AS `cust_disc`,`inv`.`custdiscadd` AS `custdiscadd`,`inv`.`rest_type` AS `rest_type`,`inv`.`tawla` AS `tawla`,`inv`.`delivery` AS `delivery`,`inv`.`reserv_custname` AS `reserv_custname`,`inv`.`reserv_custtel` AS `reserv_custtel`,`inv`.`reserv_custtel2` AS `reserv_custtel2`,`inv`.`reserv_custadd` AS `reserv_custadd`,`inv`.`reserv_date` AS `reserv_date`,`inv`.`reserv_notes` AS `reserv_notes`,`inv`.`mobapp_id` AS `mobapp_id`,`inv`.`fees` AS `fees`,`inv`.`client_type` AS `client_type`,`inv`.`client_name` AS `client_name`,`inv`.`client_mobile` AS `client_mobile`,`inv`.`costadd` AS `costadd`,`inv`.`is_tfseel` AS `is_tfseel`,`inv`.`is_tfseelrec` AS `is_tfseelrec`,`inv`.`expense1` AS `expense1`,`inv`.`expense2` AS `expense2`,`inv`.`expense3` AS `expense3`,`inv`.`expense4` AS `expense4`,`inv`.`expense5` AS `expense5`,`inv`.`totexpense` AS `totexpense`,`inv`.`expenseacc1` AS `expenseacc1`,`inv`.`expenseacc2` AS `expenseacc2`,`inv`.`expenseacc3` AS `expenseacc3`,`inv`.`expenseacc4` AS `expenseacc4`,`inv`.`expenseacc5` AS `expenseacc5`,`inv`.`offer_id` AS `offer_id`,`inv`.`tawla_paid` AS `tawla_paid`,`inv`.`notes` AS `notes`,`inv`.`is_mat` AS `is_mat`,`inv`.`is_manfc` AS `is_manfc`,`inv`.`is_complete` AS `is_complete`,`inv`.`network_type` AS `network_type`,`inv`.`cash_part` AS `cash_part`,`inv`.`network_part` AS `network_part`,`inv`.`center` AS `center`,`inv`.`agel_date` AS `agel_date`,`inv`.`agel_part` AS `agel_part`,`inv`.`bank_part` AS `bank_part`,`inv`.`bank2` AS `bank2`,`inv`.`check_refno` AS `check_refno`,`inv`.`emp_part` AS `emp_part`,`inv`.`emp` AS `emp`,`inv`.`tab3tax` AS `tab3tax`,`inv`.`IS_updated` AS `IS_updated`,`inv`.`user_IS_updated` AS `user_IS_updated`,`inv`.`IS_Temp` AS `IS_Temp`,`inv`.`dlevman` AS `dlevman`,`inv`.`kiychen_done` AS `kiychen_done`,`inv`.`rest_no_day` AS `rest_no_day`,`inv`.`coboun` AS `coboun`,`inv`.`coboun_id` AS `coboun_id`,`inv`.`coboun_Dis` AS `coboun_Dis`,`inv`.`date_delevGoes` AS `date_delevGoes`,`inv`.`date_delevCome` AS `date_delevCome`,`inv`.`date_come` AS `date_come`,`inv`.`date_go` AS `date_go`,`inv`.`voucher_code` AS `voucher_code`,`inv`.`voucher_value` AS `voucher_value`,`inv`.`pc` AS `pc`,`inv`.`printed_recipt` AS `printed_recipt`,`inv`.`persons` AS `persons`,`inv`.`inv_notes` AS `inv_notes` from `inv` where `inv`.`branch` = 99
+
+## VIEW v_inv_main
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_inv_main` AS select `inv`.`proc_id` AS `proc_id`,`inv`.`proc_type` AS `proc_type`,`inv`.`id` AS `id`,`inv`.`date` AS `date`,`inv`.`inv_type` AS `inv_type`,`inv`.`safe` AS `safe`,`inv`.`stock` AS `stock`,`inv`.`cust_id` AS `cust_id`,`inv`.`sales_emp` AS `sales_emp`,`inv`.`tot_purch` AS `tot_purch`,`inv`.`tot_sale` AS `tot_sale`,`inv`.`tot_net` AS `tot_net`,`inv`.`purch_rest_id` AS `purch_rest_id`,`inv`.`sale_rest_id` AS `sale_rest_id`,`inv`.`InvId_Return` AS `InvId_Return`,`inv`.`branch` AS `branch`,`inv`.`IS_Buy` AS `IS_Buy`,`inv`.`IS_Deleted` AS `IS_Deleted`,`inv`.`user_IS_Deleted` AS `user_IS_Deleted`,`inv`.`minus` AS `minus`,`inv`.`paid` AS `paid`,`inv`.`salesman` AS `salesman`,`inv`.`tax` AS `tax`,`inv`.`pay_type` AS `pay_type`,`inv`.`bank` AS `bank`,`inv`.`tax_ats` AS `tax_ats`,`inv`.`disc` AS `disc`,`inv`.`refno` AS `refno`,`inv`.`cust_disc` AS `cust_disc`,`inv`.`custdiscadd` AS `custdiscadd`,`inv`.`rest_type` AS `rest_type`,`inv`.`tawla` AS `tawla`,`inv`.`delivery` AS `delivery`,`inv`.`reserv_custname` AS `reserv_custname`,`inv`.`reserv_custtel` AS `reserv_custtel`,`inv`.`reserv_custtel2` AS `reserv_custtel2`,`inv`.`reserv_custadd` AS `reserv_custadd`,`inv`.`reserv_date` AS `reserv_date`,`inv`.`reserv_notes` AS `reserv_notes`,`inv`.`mobapp_id` AS `mobapp_id`,`inv`.`fees` AS `fees`,`inv`.`client_type` AS `client_type`,`inv`.`client_name` AS `client_name`,`inv`.`client_mobile` AS `client_mobile`,`inv`.`costadd` AS `costadd`,`inv`.`is_tfseel` AS `is_tfseel`,`inv`.`is_tfseelrec` AS `is_tfseelrec`,`inv`.`expense1` AS `expense1`,`inv`.`expense2` AS `expense2`,`inv`.`expense3` AS `expense3`,`inv`.`expense4` AS `expense4`,`inv`.`expense5` AS `expense5`,`inv`.`totexpense` AS `totexpense`,`inv`.`expenseacc1` AS `expenseacc1`,`inv`.`expenseacc2` AS `expenseacc2`,`inv`.`expenseacc3` AS `expenseacc3`,`inv`.`expenseacc4` AS `expenseacc4`,`inv`.`expenseacc5` AS `expenseacc5`,`inv`.`offer_id` AS `offer_id`,`inv`.`tawla_paid` AS `tawla_paid`,`inv`.`notes` AS `notes`,`inv`.`is_mat` AS `is_mat`,`inv`.`is_manfc` AS `is_manfc`,`inv`.`is_complete` AS `is_complete`,`inv`.`network_type` AS `network_type`,`inv`.`cash_part` AS `cash_part`,`inv`.`network_part` AS `network_part`,`inv`.`center` AS `center`,`inv`.`agel_date` AS `agel_date`,`inv`.`agel_part` AS `agel_part`,`inv`.`bank_part` AS `bank_part`,`inv`.`bank2` AS `bank2`,`inv`.`check_refno` AS `check_refno`,`inv`.`emp_part` AS `emp_part`,`inv`.`emp` AS `emp`,`inv`.`tab3tax` AS `tab3tax`,`inv`.`IS_updated` AS `IS_updated`,`inv`.`user_IS_updated` AS `user_IS_updated`,`inv`.`IS_Temp` AS `IS_Temp`,`inv`.`dlevman` AS `dlevman`,`inv`.`kiychen_done` AS `kiychen_done`,`inv`.`rest_no_day` AS `rest_no_day`,`inv`.`coboun` AS `coboun`,`inv`.`coboun_id` AS `coboun_id`,`inv`.`coboun_Dis` AS `coboun_Dis`,`inv`.`date_delevGoes` AS `date_delevGoes`,`inv`.`date_delevCome` AS `date_delevCome`,`inv`.`date_come` AS `date_come`,`inv`.`date_go` AS `date_go`,`inv`.`voucher_code` AS `voucher_code`,`inv`.`voucher_value` AS `voucher_value`,`inv`.`pc` AS `pc`,`inv`.`printed_recipt` AS `printed_recipt`,`inv`.`persons` AS `persons`,`inv`.`inv_notes` AS `inv_notes` from `inv` where `inv`.`branch` <> 99
+
+## VIEW v_sales_today
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_sales_today` AS select `inv`.`proc_id` AS `proc_id`,`inv`.`proc_type` AS `proc_type`,`inv`.`id` AS `id`,`inv`.`date` AS `date`,`inv`.`inv_type` AS `inv_type`,`inv`.`safe` AS `safe`,`inv`.`stock` AS `stock`,`inv`.`cust_id` AS `cust_id`,`inv`.`sales_emp` AS `sales_emp`,`inv`.`tot_purch` AS `tot_purch`,`inv`.`tot_sale` AS `tot_sale`,`inv`.`tot_net` AS `tot_net`,`inv`.`purch_rest_id` AS `purch_rest_id`,`inv`.`sale_rest_id` AS `sale_rest_id`,`inv`.`InvId_Return` AS `InvId_Return`,`inv`.`branch` AS `branch`,`inv`.`IS_Buy` AS `IS_Buy`,`inv`.`IS_Deleted` AS `IS_Deleted`,`inv`.`user_IS_Deleted` AS `user_IS_Deleted`,`inv`.`minus` AS `minus`,`inv`.`paid` AS `paid`,`inv`.`salesman` AS `salesman`,`inv`.`tax` AS `tax`,`inv`.`pay_type` AS `pay_type`,`inv`.`bank` AS `bank`,`inv`.`tax_ats` AS `tax_ats`,`inv`.`disc` AS `disc`,`inv`.`refno` AS `refno`,`inv`.`cust_disc` AS `cust_disc`,`inv`.`custdiscadd` AS `custdiscadd`,`inv`.`rest_type` AS `rest_type`,`inv`.`tawla` AS `tawla`,`inv`.`delivery` AS `delivery`,`inv`.`reserv_custname` AS `reserv_custname`,`inv`.`reserv_custtel` AS `reserv_custtel`,`inv`.`reserv_custtel2` AS `reserv_custtel2`,`inv`.`reserv_custadd` AS `reserv_custadd`,`inv`.`reserv_date` AS `reserv_date`,`inv`.`reserv_notes` AS `reserv_notes`,`inv`.`mobapp_id` AS `mobapp_id`,`inv`.`fees` AS `fees`,`inv`.`client_type` AS `client_type`,`inv`.`client_name` AS `client_name`,`inv`.`client_mobile` AS `client_mobile`,`inv`.`costadd` AS `costadd`,`inv`.`is_tfseel` AS `is_tfseel`,`inv`.`is_tfseelrec` AS `is_tfseelrec`,`inv`.`expense1` AS `expense1`,`inv`.`expense2` AS `expense2`,`inv`.`expense3` AS `expense3`,`inv`.`expense4` AS `expense4`,`inv`.`expense5` AS `expense5`,`inv`.`totexpense` AS `totexpense`,`inv`.`expenseacc1` AS `expenseacc1`,`inv`.`expenseacc2` AS `expenseacc2`,`inv`.`expenseacc3` AS `expenseacc3`,`inv`.`expenseacc4` AS `expenseacc4`,`inv`.`expenseacc5` AS `expenseacc5`,`inv`.`offer_id` AS `offer_id`,`inv`.`tawla_paid` AS `tawla_paid`,`inv`.`notes` AS `notes`,`inv`.`is_mat` AS `is_mat`,`inv`.`is_manfc` AS `is_manfc`,`inv`.`is_complete` AS `is_complete`,`inv`.`network_type` AS `network_type`,`inv`.`cash_part` AS `cash_part`,`inv`.`network_part` AS `network_part`,`inv`.`center` AS `center`,`inv`.`agel_date` AS `agel_date`,`inv`.`agel_part` AS `agel_part`,`inv`.`bank_part` AS `bank_part`,`inv`.`bank2` AS `bank2`,`inv`.`check_refno` AS `check_refno`,`inv`.`emp_part` AS `emp_part`,`inv`.`emp` AS `emp`,`inv`.`tab3tax` AS `tab3tax`,`inv`.`IS_updated` AS `IS_updated`,`inv`.`user_IS_updated` AS `user_IS_updated`,`inv`.`IS_Temp` AS `IS_Temp`,`inv`.`dlevman` AS `dlevman`,`inv`.`kiychen_done` AS `kiychen_done`,`inv`.`rest_no_day` AS `rest_no_day`,`inv`.`coboun` AS `coboun`,`inv`.`coboun_id` AS `coboun_id`,`inv`.`coboun_Dis` AS `coboun_Dis`,`inv`.`date_delevGoes` AS `date_delevGoes`,`inv`.`date_delevCome` AS `date_delevCome`,`inv`.`date_come` AS `date_come`,`inv`.`date_go` AS `date_go`,`inv`.`voucher_code` AS `voucher_code`,`inv`.`voucher_value` AS `voucher_value`,`inv`.`pc` AS `pc`,`inv`.`printed_recipt` AS `printed_recipt`,`inv`.`persons` AS `persons`,`inv`.`inv_notes` AS `inv_notes` from `inv` where `inv`.`IS_Deleted` = 0 and `inv`.`IS_Buy` = 0 and `inv`.`proc_type` = 1 and cast(`inv`.`date` as date) = curdate()
+
+## VIEW v_stock
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_stock` AS select `c`.`id` AS `id`,`c`.`symbol` AS `name`,ifnull(`b`.`bal`,0) AS `bal`,`c`.`sale_price` AS `sale_price`,`c`.`purch_price` AS `purch_price`,`c`.`group_id` AS `group_id` from (`currencies` `c` left join `item_bal` `b` on(`b`.`id` = `c`.`id`)) where `c`.`IS_Deleted` = 0
+
+=== APP_SETTINGS ===
+lang_user_1 = ar
+mod_about.php = 1
+mod_admin.php = 1
+mod_areas.php = 0
+mod_bank_rep.php = 0
+mod_banks.php = 0
+mod_barcode.php = 1
+mod_board.php = 1
+mod_branches.php = 0
+mod_buy_rs.php = 1
+mod_company.php = 1
+mod_coupons.php = 1
+mod_cust_bal.php = 1
+mod_cust_groups.php = 1
+mod_customers.php = 1
+mod_dash.php = 1
+mod_day_rep.php = 0
+mod_dups.php = 1
+mod_easy.php = 1
+mod_expenses.php = 1
+mod_ext_voucher.php = 0
+mod_hr_comm.php = 0
+mod_hr_depts.php = 0
+mod_hr_emp.php = 0
+mod_hr_sales.php = 0
+mod_item_edit.php = 1
+mod_lastpay.php = 1
+mod_loyalty.php = 1
+mod_maingroups.php = 1
+mod_money.php = 1
+mod_msale.php = 1
+mod_offers.php = 1
+mod_order.php = 1
+mod_predict.php = 1
+mod_reports.php = 1
+mod_safes.php = 0
+mod_salary.php = 1
+mod_sale_rs.php = 1
+mod_schema.php = 1
+mod_settings.php = 1
+mod_shift_rep.php = 1
+mod_shifts.php = 1
+mod_snapshot.php = 1
+mod_stock.php = 1
+mod_stocks.php = 0
+mod_strings.php = 1
+mod_sync.php = 1
+mod_theme.php = 1
+mod_transfers.php = 0
+mod_units.php = 1
+mod_user_mgmt.php = 1
+mod_users.php = 1
+mod_vouchers.php = 0
+mod_vouchershop.php = 0
+mod_whatsapp.php = 1
+shop_name = صيدلية الشفاء المركزية
+ui_bg = #f1f5f9
+ui_bold = 1
+ui_fg = #0f172a
+ui_font = Cairo
+ui_lang = ar
+ui_on = 
+ui_size = 20
+
+=== RS_SEQ ===
+seq_inv = 10000003
+seq_proc = 10000003
+seq_sub = 1000026
+tbl_coboun_id = 0
+tbl_currencies_id = 37133
+tbl_customers_id = 0
+tbl_gard_id = 0
+tbl_restrictions_doc_no = 0
+tbl_restrictions_id = 0
+tbl_users_id = 0
+tbl_voucher_id = 0
+
+=== USER_PERMS ===
+2 | m_cust | 1
+2 | m_sale | 1
+11 | m_admin | 1
+11 | m_buy | 1
+11 | m_cust | 1
+11 | m_money | 1
+11 | m_reports | 1
+11 | m_sale | 1
+11 | m_stock | 1
+
+=== PAY_METHODS ===
+{"id":1,"name":"كاش","active":1}
+{"id":2,"name":"شبكة","active":1}
+{"id":3,"name":"محفظة","active":1}
+{"id":4,"name":"انستاباى","active":1}
+
+=== BRANCHES ===
+{"id":1,"name":"الفرع الرئيسي","Tel":null,"Mobile":null,"Fax":null,"Email":null,"Address":null,"notes":null,"IS_Deleted":0,"is_main":0}
+
+=== GROUPS ===
+{"id":1,"name":"أدوية عامة","nameEN":"General Medicines","color":null,"printer":null,"parent_id":1,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+{"id":2,"name":"مسكنات وخافض حرارة","nameEN":"Painkillers & Antipyretics","color":null,"printer":null,"parent_id":2,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+{"id":3,"name":"مضادات حيوية","nameEN":"Antibiotics","color":null,"printer":null,"parent_id":3,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+{"id":4,"name":"فيتامينات ومكملات غذائية","nameEN":"Vitamins & Supplements","color":null,"printer":null,"parent_id":4,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+{"id":5,"name":"عناية بالبشرة والتجميل","nameEN":"Skincare & Cosmetics","color":null,"printer":null,"parent_id":5,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+{"id":6,"name":"أدوية أطفال","nameEN":"Pediatrics","color":null,"printer":null,"parent_id":6,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+{"id":7,"name":"مستلزمات طبية","nameEN":"Medical Supplies","color":null,"printer":null,"parent_id":7,"dis":null,"main_groups":null,"PACKUP_Printers":null,"printer_count":null,"PACKUP_Printers_count":null,"web_id":null,"web_cat_parent_id":null,"group_orders":null,"image_path":null}
+
+=== UNITS ===
+{"id":1,"name":"علبة","count":1}
+{"id":2,"name":"شريط","count":10}
+{"id":3,"name":"قرص \/ حبة","count":1}
+{"id":4,"name":"شراب (مل)","count":100}
+{"id":5,"name":"مرهم \/ كريم","count":1}
+{"id":6,"name":"بخاخ","count":1}

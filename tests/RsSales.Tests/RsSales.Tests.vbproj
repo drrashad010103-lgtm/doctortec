@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Dapper" Version="2.1.89" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RsSales.Domain\RsSales.Domain.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Business\RsSales.Business.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Data\RsSales.Data.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Sync\RsSales.Sync.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Server\RsSales.Server.csproj" />
+  </ItemGroup>
+
+</Project>

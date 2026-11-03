@@ -1,0 +1,39 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio / .NET
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.bim_*.settings
+*.rptproj.bak
+*.DotSettings.user
+
+# Local configuration & secrets
+appsettings.json
+appsettings.Development.json
+
+# Temporary build logs & scratch files
+bmin.txt
+bq*.txt
+build_*.txt
+uifiles.txt
+RsSales_latest.slnx
+*.tmp
+*.bak
+
+# Release artifacts (regenerable, kept out of history)
+/rs_sales_complete_system.zip

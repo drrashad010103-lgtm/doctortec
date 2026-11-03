@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RsSales.Domain\RsSales.Domain.vbproj" />
+    <ProjectReference Include="..\RsSales.Data\RsSales.Data.vbproj" />
+    <ProjectReference Include="..\RsSales.Business\RsSales.Business.vbproj" />
+    <ProjectReference Include="..\RsSales.Infrastructure\RsSales.Infrastructure.vbproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

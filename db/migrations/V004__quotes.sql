@@ -1,0 +1,60 @@
+-- ---------------------------------------------------------------------
+-- V004: service quotations with conversion to a posted sale invoice
+-- ---------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS quotes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    uuid CHAR(36) NOT NULL,
+    quote_no VARCHAR(40) NOT NULL,
+    branch_id BIGINT UNSIGNED NOT NULL,
+    customer_id BIGINT UNSIGNED NULL,
+    status ENUM('draft','sent','accepted','rejected','converted','cancelled') NOT NULL DEFAULT 'draft',
+    valid_until DATE NULL,
+    subtotal DECIMAL(18,2) NOT NULL DEFAULT 0,
+    line_discount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    header_discount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    tax_base_total DECIMAL(18,2) NOT NULL DEFAULT 0,
+    tax_total DECIMAL(18,2) NOT NULL DEFAULT 0,
+    total DECIMAL(18,2) NOT NULL DEFAULT 0,
+    price_mode ENUM('inclusive','exclusive') NOT NULL DEFAULT 'inclusive',
+    notes VARCHAR(500) NULL,
+    converted_invoice_id BIGINT UNSIGNED NULL,
+    converted_at DATETIME(6) NULL,
+    created_by BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY ux_quotes_uuid (uuid),
+    UNIQUE KEY ux_quotes_no (quote_no),
+    KEY ix_quotes_branch_status (branch_id, status),
+    KEY ix_quotes_customer (customer_id),
+    KEY ix_quotes_created_at (created_at),
+    CONSTRAINT fk_quotes_branch FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_quotes_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    CONSTRAINT fk_quotes_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_quotes_invoice FOREIGN KEY (converted_invoice_id) REFERENCES invoices(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quote_lines (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    quote_id BIGINT UNSIGNED NOT NULL,
+    item_id BIGINT UNSIGNED NOT NULL,
+    qty DECIMAL(18,4) NOT NULL,
+    unit_price DECIMAL(18,4) NOT NULL,
+    discount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    tax_category_id BIGINT UNSIGNED NOT NULL,
+    tax_rate DECIMAL(6,3) NOT NULL DEFAULT 0,
+    tax_base DECIMAL(18,2) NOT NULL DEFAULT 0,
+    tax_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+    line_total DECIMAL(18,2) NOT NULL DEFAULT 0,
+    notes VARCHAR(255) NULL,
+    PRIMARY KEY (id),
+    KEY ix_quote_lines_quote (quote_id),
+    KEY ix_quote_lines_item (item_id),
+    CONSTRAINT fk_quote_lines_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_quote_lines_item FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_quote_lines_tax FOREIGN KEY (tax_category_id) REFERENCES tax_categories(id) ON DELETE RESTRICT,
+    CONSTRAINT ck_quote_lines_qty CHECK (qty > 0),
+    CONSTRAINT ck_quote_lines_price CHECK (unit_price >= 0),
+    CONSTRAINT ck_quote_lines_discount CHECK (discount >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

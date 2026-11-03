@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RsSales.Business/RsSales.Business.vbproj" />
+    <Project Path="src/RsSales.Data/RsSales.Data.vbproj" />
+    <Project Path="src/RsSales.DbTool/RsSales.DbTool.vbproj" />
+    <Project Path="src/RsSales.Domain/RsSales.Domain.vbproj" />
+    <Project Path="src/RsSales.Infrastructure/RsSales.Infrastructure.vbproj" />
+    <Project Path="src/RsSales.Server/RsSales.Server.csproj" />
+    <Project Path="src/RsSales.Sync/RsSales.Sync.vbproj" />
+    <Project Path="src/RsSales.UI/RsSales.UI.vbproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RsSales.Tests/RsSales.Tests.vbproj" />
+  </Folder>
+</Solution>

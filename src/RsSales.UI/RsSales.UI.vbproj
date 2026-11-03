@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>RsSales.UI</RootNamespace>
+    <StartupObject>Sub Main</StartupObject>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>..\..\assets\rs-sales.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Import Include="System.Data" />
+    <Import Include="System.Drawing" />
+    <Import Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RsSales.Domain\RsSales.Domain.vbproj" />
+    <ProjectReference Include="..\RsSales.Data\RsSales.Data.vbproj" />
+    <ProjectReference Include="..\RsSales.Business\RsSales.Business.vbproj" />
+    <ProjectReference Include="..\RsSales.Sync\RsSales.Sync.vbproj" />
+    <ProjectReference Include="..\RsSales.Infrastructure\RsSales.Infrastructure.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\assets\doctor-tech-logo.png" Link="assets\doctor-tech-logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\assets\rs-sales.ico" Link="assets\rs-sales.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

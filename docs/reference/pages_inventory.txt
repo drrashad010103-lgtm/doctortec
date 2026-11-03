@@ -1,0 +1,498 @@
+about.php (21 lines)
+  <?php
+  // pages/about.php — عن النسخة الحرة
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+acc.php (108 lines)
+  <?php
+  // pages/acc.php — شجرة الحسابات: عرض هرمي + أرصدة + إضافة/تعديل/حذف أوراق (فرع 99)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+admin.php (60 lines)
+  <?php
+  // pages/admin.php — لوحة تحكم الباك إند (يوزرات + باسوردات + صلاحيات) — rs_own فقط
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/users.php';
+api_buy_find.php (13 lines)
+  <?php
+  // pages/api_sale_find.php + api_buy_find.php — بحث فواتير النسخة والمستوردة بفترة
+  require __DIR__ . '/../lib/db.php';
+  header('Content-Type: application/json; charset=utf-8');
+api_buy_item.php (14 lines)
+  <?php
+  // pages/api_buy_item.php — بطاقة صنف للشراء (تكلفة + بيع + رصيد)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_buy_load.php (16 lines)
+  <?php
+  // pages/api_buy_load.php — تحميل فاتورة شراء (فرع 99 محلي + فواتير مستوردة للعرض فقط)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_buy_nav.php (14 lines)
+  <?php
+  // pages/api_buy_nav.php — تنقل بين فواتير النسخة (فرع 99 مشتريات)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_buy_save.php (102 lines)
+  <?php
+  // pages/api_buy_save.php — حفظ/تعديل/حذف فاتورة شراء (فرع 99 فقط)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_control.php (277 lines)
+  <?php
+  // pages/api_control.php — عقل لوحة التحكم الشاملة (تبويب واحد): قاعدة/أصناف/عملاء/دفع/ولاء/يوزرات
+  // الصلاحية: m_admin (خريطة cfg) — والتبديل/الإنشاء/الحذف الخطر حصراً للمالك admin
+  header('Content-Type: application/json; charset=utf-8');
+api_coupon.php (11 lines)
+  <?php
+  // pages/api_coupon.php — التحقق من كوبون خصم (كود + تواريخ + فعال)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_cust_quick.php (25 lines)
+  <?php
+  // pages/api_cust_quick.php — عميل جديد سريع من الفاتورة (يتطلب بيع أو عملاء)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_easy_sync.php (231 lines)
+  <?php
+  // pages/api_easy_sync.php — تشغيل مزامنة EasyOrders (stock / prices / costs / full)
+  ini_set('display_errors', '0');
+  ini_set('log_errors', '1');
+api_gard.php (122 lines)
+  <?php
+  // pages/api_gard.php — واجهة جرد سكانر (حوض count_list — مطابق لجرد الداش بورد المهندس)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_item.php (20 lines)
+  <?php
+  // pages/api_item.php — بحث أصناف (من rs_own)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_item_add.php (68 lines)
+  <?php
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+  require_once __DIR__ . '/../lib/items.php';
+api_item_full.php (26 lines)
+  <?php
+  // pages/api_item_full.php — بطاقة صنف كاملة (أسعار + رصيد + وحدات)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_item_notes.php (24 lines)
+  <?php
+  // pages/api_item_notes.php — جلب تعليمات وملاحظات وتحذيرات الدواء لعرضها في البوب أب
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_last_buy.php (11 lines)
+  <?php
+  // pages/api_last_buy.php — آخر شراء لصنف
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_last_sale.php (11 lines)
+  <?php
+  // pages/api_last_sale.php — آخر بيع لصنف
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_loyalty.php (48 lines)
+  <?php
+  // pages/api_loyalty.php — واجهة نقاط الولاء
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_sale_find.php (13 lines)
+  <?php
+  // pages/api_sale_find.php + api_buy_find.php — بحث فواتير النسخة والمستوردة بفترة
+  require __DIR__ . '/../lib/db.php';
+  header('Content-Type: application/json; charset=utf-8');
+api_sale_load.php (17 lines)
+  <?php
+  // pages/api_sale_load.php — تحميل فاتورة محفوظة (فرع 99 محلي + فواتير مستوردة للعرض فقط)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_sale_nav.php (14 lines)
+  <?php
+  // pages/api_sale_nav.php — تنقل بين فواتير بيع النسخة (فرع 99)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+api_sale_save.php (171 lines)
+  <?php
+  // pages/api_sale_save.php — حفظ/تعديل/حذف فاتورة بيع (فرع 99 فقط — حماية للأصل)
+  header('Content-Type: application/json; charset=utf-8');
+  require __DIR__ . '/../lib/db.php';
+areas.php (27 lines)
+  <?php
+  // pages/areas.php — تعريف المناطق (دولة/مدينة/منطقة)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+audit.php (48 lines)
+  <?php
+  // pages/audit.php — عرض سجل التدقيق (عملية/مستخدم/تاريخ/بحث)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+backup.php (47 lines)
+  <?php
+  // pages/backup.php + close_year.php — نسخة احتياطية + إغلاق سنة (rs_own فقط)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+bank_rep.php (29 lines)
+  <?php
+  // pages/bank_rep.php — تقرير البنوك (كشف حساب بنك)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+banks.php (51 lines)
+  <?php
+  // pages/safes.php + stocks.php + banks.php — تعريف (نموذج موحد)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+barcode.php (42 lines)
+  <?php
+  // pages/barcode.php — طباعة باركود (مصمم ملصقات)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+board.php (222 lines)
+  <?php
+  // pages/board.php — لوحة الداشبورد الحية (نسخة rs_own طبق الأصل من 8765)
+  // الأقسام: اليوم | المبيعات والأرباح | المخزون | صافي الشهور — نفس الصيغ: الإيراد من الرؤوس، الربح = إيراد − تكلفة معاصرة (آخر شراء ≤ تاريخ البيع)
+  require __DIR__ . '/../lib/db.php';
+branches.php (53 lines)
+  <?php
+  // pages/branches.php — تعريف الفروع (إضافة/تعديل/حذف/تنقل) طبق الأصل
+  require __DIR__ . '/../lib/db.php';
+  $db = db();
+bridge.php (114 lines)
+  <?php
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+  require_once __DIR__ . '/../lib/bridge.php';
+buy.php (153 lines)
+  <?php
+  // pages/buy.php — فاتورة مشتريات طبق الأصل (الشريط الأزرق + الصلاحية + سعر بيع)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+buy_rs.php (521 lines)
+  <?php
+  // pages/buy_rs.php — فاتورة مشتريات نسخة طبق الأصل (تخطيط سطح المكتب الكامل)
+  require __DIR__ . '/../lib/db.php';
+  require __DIR__ . '/../lib/auth.php';
+close_year.php (24 lines)
+  <?php
+  // pages/backup.php + close_year.php — نسخة احتياطية وإقفال السنة (نسخة حرة)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+company.php (101 lines)
+  <?php
+  // pages/company.php — بيانات الشركة (تبويبان: أساسية + فواتير) + إعدادات النظام
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/company.php';
+control.php (438 lines)
+  <?php
+  // pages/control.php — لوحة التحكم الشاملة (تبويب واحد): قاعدة/أصناف/عملاء/دفع/ولاء/يوزرات — كل حاجة قابلة للإضافة والتعديل والحذف
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+coupons.php (60 lines)
+  <?php
+  // pages/cust_groups.php + coupons.php + vouchershop.php + lastpay.php — شاشات العملاء الأربع
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+cust_bal.php (33 lines)
+  <?php
+  // pages/cust_bal.php — أرصدة حسابات العملاء + كشف حساب عميل + كشف بيع/شراء
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+cust_groups.php (3 lines)
+  <?php
+  // pages/cust_groups.php — wrapper لشاشة المجموعات داخل coupons.php
+  require __DIR__ . '/coupons.php';
+customers.php (82 lines)
+  <?php
+  // pages/customers.php — تعريف العملاء/الموردين (محرر كامل + بحث + كشف)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/customers.php';
+dash.php (7 lines)
+  <?php
+  // pages/dash.php — الداشبورد الحية مضمنة في النسخة الحرة
+  require_once __DIR__ . '/../lib/layout.php';
+  layout_open('داشبورد المحل', '');
+data_basic.php (17 lines)
+  <?php
+  // pages/data_basic.php — البيانات الأساسية (نفس أيقونات البرنامج)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+day_rep.php (20 lines)
+  <?php
+  // pages/day_rep.php + shift_rep.php — تقرير اليوميات / الورديات
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+defs.php (31 lines)
+  <?php
+  // pages/defs.php — تعريف جداول أساسية (عرض + إضافة) — فرع 99 للجديد
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+dups.php (33 lines)
+  <?php
+  // pages/dups.php — الأصناف المكررة (نفس الباركود / نفس الاسم)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+easy.php (351 lines)
+  <?php
+  // pages/easy.php — شاشة تحكم مزامنة EasyOrders
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+expenses.php (27 lines)
+  <?php
+  // pages/expenses.php — تعريف مصروفات (كود + بند)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+ext_voucher.php (49 lines)
+  <?php
+  // pages/ext_voucher.php — سند قبض/صرف عمليات خارجية (mode=in|out) + شيك
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+gardscan.php (136 lines)
+  <?php
+  // pages/gardscan.php — جرد سكانر (حوض count_list — مطابق لجرد الداش بورد المهندس)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+home.php (65 lines)
+  <?php
+  // pages/home.php — لوحة تحكم النسخة الحرة (تقرأ من rs_own مباشرة — خفيفة لإنفينيتي)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+hr_comm.php (30 lines)
+  <?php
+  // pages/hr_comm.php — تقرير عمولة بائعين/دليفري (type=seller|delivery)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+hr_depts.php (40 lines)
+  <?php
+  // pages/hr_depts.php — الإدارات والأقسام (mode=dept|sec)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+hr_emp.php (51 lines)
+  <?php
+  // pages/hr_emp.php — تعريف موظف (محرر كامل + بحث)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+hr_sales.php (59 lines)
+  <?php
+  // pages/hr_sales.php — تعريف بائعين/دليفري (mode=seller|delivery) + بحث
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+item_edit.php (97 lines)
+  <?php
+  // pages/item_edit.php — تعريف الأصناف (محرر كامل: إدخال + بحث + مخزون أول مدة + وحدات)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+item_img.php (23 lines)
+  <?php
+  // pages/item_img.php — معاينة صورة الصنف المحفوظة محلياً
+  require __DIR__ . '/../lib/db.php';
+  if (empty($_SESSION['u'])) { http_response_code(403); exit; }
+items.php (70 lines)
+  <?php
+  // pages/items.php — تعريف الأصناف: بحث + بطاقة صنف كاملة + تعديل أسعار
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/items.php';
+journal.php (100 lines)
+  <?php
+  // pages/journal.php — دفتر اليومية: قيد يدوي متعدد السطور + عرض القيود بالبنود + حذف (فرع 99)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+lang.php (26 lines)
+  <?php
+  require_once __DIR__ . '/../lib/i18n.php';
+  $lang = strtolower(trim((string)($_GET['set'] ?? '')));
+  $back = trim((string)($_GET['back'] ?? 'main.php'));
+lastpay.php (3 lines)
+  <?php
+  // pages/lastpay.php — wrapper لتقرير آخر دفعة داخل coupons.php
+  require __DIR__ . '/coupons.php';
+login.php (27 lines)
+  <?php
+  // pages/login.php — تسجيل الدخول (انظر أيضاً lib/auth.php)
+  require_once __DIR__ . '/../lib/cfg.php';
+  require_once __DIR__ . '/../lib/i18n.php';
+logout.php (7 lines)
+  <?php
+  // pages/logout.php
+  require __DIR__ . '/../lib/db.php';
+  require __DIR__ . '/../lib/auth.php';
+loyalty.php (59 lines)
+  <?php
+  // pages/loyalty.php — لوحة نقاط الولاء
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+main.php (169 lines)
+  <?php
+  // pages/main.php — الواجهة الرئيسية (القوائم من سجل الموديولات: موديول مقفول/ممنوع = مخفي)
+  require __DIR__ . '/../lib/db.php';
+  require __DIR__ . '/../lib/auth.php';
+maingroups.php (39 lines)
+  <?php
+  // pages/maingroups.php — مجموعات رئيسية الأصناف + مجموعات الأصناف (محرر كامل)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+migrate_in.php (97 lines)
+  <?php
+  // pages/migrate_in.php — تطبيق مانيفست المخطط (توكن إلزامي + حد معدل + سجل تدقيق)
+  ini_set('display_errors', '0');
+  require_once __DIR__ . '/../lib/db.php';
+money.php (60 lines)
+  <?php
+  // pages/money.php — أموال: سندات قبض/صرف وتحويل + كشوف (فرع 99)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+msale.php (98 lines)
+  <?php
+  // pages/msale.php — فاتورة موبايل خفيفة (كاشير سريع / دليفري) — فرع 99
+  require __DIR__ . '/../lib/db.php';
+  $db = db();
+offers.php (74 lines)
+  <?php
+  // pages/offers.php — تبويب العروض والخصومات (عروض أصناف + كوبونات + تقرير)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+order.php (93 lines)
+  <?php
+  // pages/order.php — غرفة الطلبية الذكية 🧠 (نواقص + مثالي + تصفية إكسبير — grouped by قسم)
+  // الصيغ: شهري(90ي)=مبيع×30/90، مثالي نواقص=شهري×2 | مثالي عام=شهري(سنة)×تغطية/30
+  require __DIR__ . '/../lib/db.php';
+ping.php (5 lines)
+  <?php
+  // نبض الإبقاء على الجلسة نشطة (يستدعى من main.php كل شوية حتى لا تنقطع الجلسة)
+  header('Content-Type: text/plain; charset=utf-8');
+  header('Cache-Control: no-store');
+predict.php (140 lines)
+  <?php
+  // pages/predict.php — التنبؤ الذكي للمخزون: هينفد إمتى + كمية الطلب
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+print_inv.php (70 lines)
+  <?php
+  // pages/print_inv.php — طباعة فاتورة (A4 + ريسيت 80مم) — فرع 99 والمستورد
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+reports.php (154 lines)
+  <?php
+  // pages/reports.php — تقارير بيع وشراء (سعر بيع/شراء/إجمالي/ربح لكل تقرير + CSV + فلاتر)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+restore.php (61 lines)
+  <?php
+  // pages/restore.php — إرشادات الاسترجاع (لا تنفيذ من الويب)
+  //
+  // قرار المرحلة 4: الاسترجاع لا يُنفَّذ من المتصفح إطلاقًا.
+safes.php (51 lines)
+  <?php
+  // pages/safes.php + stocks.php + banks.php — تعريف (نموذج موحد)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+salary.php (43 lines)
+  <?php
+  // pages/salary.php — صرف الرواتب (نسخة SalaryPay الأصلي: صافي + شهر + سنة + مسئول الصرف)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+sale.php (201 lines)
+  <?php
+  // pages/sale.php — فاتورة بيع طبق الأصل من شاشة RS (الشريط الأخضر + نفس الحقول)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+sale_rs.php (700 lines)
+  <?php
+  // pages/sale_rs.php — فاتورة بيع نسخة طبق الأصل (تخطيط سطح المكتب الكامل)
+  require __DIR__ . '/../lib/db.php';
+  require __DIR__ . '/../lib/auth.php';
+schema.php (35 lines)
+  <?php
+  // pages/schema.php — متصفح بنية البرنامج (قراءة فقط)
+  require __DIR__ . '/../lib/db.php';
+  $db = db();
+settings.php (143 lines)
+  <?php
+  // pages/settings.php — لوحة تحكم المحل: هوية المحل + إظهار/إخفاء الموديولات + نموذج الشغل
+  // (مالك admin فقط — من خريطة الصلاحيات) — يقف على: companies (هوية) + app_settings (إعدادات)
+  require __DIR__ . '/../lib/db.php';
+shift_rep.php (20 lines)
+  <?php
+  // pages/day_rep.php + shift_rep.php — تقرير اليوميات / الورديات
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+shifts.php (27 lines)
+  <?php
+  // pages/shifts.php — الورديات وفتح/قفل اليوم (فرع 99 = ورديات النسخة)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+snapshot.php (97 lines)
+  <?php
+  // pages/snapshot.php — النسخ الاحتياطي (عبر أداة CLI آمنة) + أرشفة سنة مالية
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/archive_year.php';
+stock.php (208 lines)
+  <?php
+  // pages/stock.php — تقارير المخازن (سعر بيع/شراء/إجمالي/ربح لكل تقرير + CSV + فلاتر)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+stocks.php (51 lines)
+  <?php
+  // pages/safes.php + stocks.php + banks.php — تعريف (نموذج موحد)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+strings.php (19 lines)
+  <?php
+  // pages/strings.php — عارض النصوص المستخرجة من قلب البرنامج
+  require_once __DIR__ . '/../lib/layout.php';
+  $all = file(__DIR__ . '/../../rs_strings16.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+sync.php (17 lines)
+  <?php
+  // pages/sync.php — حالة كوبري RS_RS → rs_own (قراءة فقط من الأصل)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+sync_in.php (80 lines)
+  <?php
+  // pages/sync_in.php — استقبال مزامنة (توكن إلزامي + حد معدل + سجل تدقيق)
+  ini_set('display_errors', '0');
+  require_once __DIR__ . '/../lib/push.php';
+theme.php (31 lines)
+  <?php
+  // pages/theme.php — إعدادات المستخدم للشاشات (خط/لون/خلفية)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';
+transfers.php (75 lines)
+  <?php
+  // pages/transfers.php — تحويل بين خزائن + تقاريرها + أرصدة وحركة الخزائن
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+trial.php (67 lines)
+  <?php
+  // pages/trial.php — ميزان المراجعة لكل الحسابات + كشف حساب تفصيلي برصيد متحرك (فرع 99)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+units.php (25 lines)
+  <?php
+  // pages/units.php — الوحدات (الوحدة + العدد داخل الوحدة)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+user_mgmt.php (33 lines)
+  <?php
+  // pages/user_mgmt.php — إضافة مستخدمين (موظف + دخول + صلاحيات)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/users.php';
+users.php (40 lines)
+  <?php
+  // pages/users.php — المستخدمون والصلاحيات (نسخة حرة)
+  require __DIR__ . '/../lib/db.php';
+  require __DIR__ . '/../lib/auth.php';
+vouchers.php (57 lines)
+  <?php
+  // pages/vouchers.php — القيود الافتتاحية (رأس + بنود متزنة + بحث)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+vouchershop.php (38 lines)
+  <?php
+  // pages/vouchershop.php — قسائم المشتريات (Gift Vouchers)
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/layout.php';
+whatsapp.php (44 lines)
+  <?php
+  // pages/whatsapp.php — خدمة واتساب (محادثة عميل + مشاركة فاتورة) — wa.me بلا بوابة
+  require __DIR__ . '/../lib/db.php';
+  require_once __DIR__ . '/../lib/cfg.php';

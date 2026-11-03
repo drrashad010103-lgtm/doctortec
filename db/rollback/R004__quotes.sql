@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS quote_lines;
+DROP TABLE IF EXISTS quotes;

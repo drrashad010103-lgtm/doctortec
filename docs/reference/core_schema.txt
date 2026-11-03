@@ -1,0 +1,657 @@
+===== inv =====
+CREATE TABLE `inv` (
+  `proc_id` int(11) DEFAULT NULL,
+  `proc_type` int(11) DEFAULT NULL,
+  `id` int(11) DEFAULT NULL,
+  `date` datetime DEFAULT NULL,
+  `inv_type` int(11) DEFAULT NULL,
+  `safe` int(11) DEFAULT NULL,
+  `stock` int(11) DEFAULT NULL,
+  `cust_id` int(11) DEFAULT NULL,
+  `sales_emp` int(11) DEFAULT NULL,
+  `tot_purch` decimal(14,2) DEFAULT NULL,
+  `tot_sale` decimal(14,2) DEFAULT NULL,
+  `tot_net` decimal(14,2) DEFAULT NULL,
+  `purch_rest_id` int(11) DEFAULT NULL,
+  `sale_rest_id` int(11) DEFAULT NULL,
+  `InvId_Return` int(11) DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `IS_Buy` tinyint(1) DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `user_IS_Deleted` int(11) DEFAULT NULL,
+  `minus` decimal(14,2) DEFAULT NULL,
+  `paid` decimal(14,2) DEFAULT NULL,
+  `salesman` int(11) DEFAULT NULL,
+  `tax` decimal(14,2) DEFAULT NULL,
+  `pay_type` int(11) DEFAULT NULL,
+  `bank` bigint(20) DEFAULT NULL,
+  `tax_ats` decimal(14,2) DEFAULT NULL,
+  `disc` decimal(14,2) DEFAULT NULL,
+  `refno` text DEFAULT NULL,
+  `cust_disc` decimal(14,2) DEFAULT NULL,
+  `custdiscadd` decimal(14,2) DEFAULT NULL,
+  `rest_type` int(11) DEFAULT NULL,
+  `tawla` int(11) DEFAULT NULL,
+  `delivery` int(11) DEFAULT NULL,
+  `reserv_custname` text DEFAULT NULL,
+  `reserv_custtel` text DEFAULT NULL,
+  `reserv_custtel2` text DEFAULT NULL,
+  `reserv_custadd` text DEFAULT NULL,
+  `reserv_date` datetime DEFAULT NULL,
+  `reserv_notes` text DEFAULT NULL,
+  `mobapp_id` int(11) DEFAULT NULL,
+  `fees` decimal(14,2) DEFAULT NULL,
+  `client_type` int(11) DEFAULT NULL,
+  `client_name` text DEFAULT NULL,
+  `client_mobile` text DEFAULT NULL,
+  `costadd` decimal(14,2) DEFAULT NULL,
+  `is_tfseel` tinyint(1) DEFAULT NULL,
+  `is_tfseelrec` int(11) DEFAULT NULL,
+  `expense1` decimal(14,2) DEFAULT NULL,
+  `expense2` decimal(14,2) DEFAULT NULL,
+  `expense3` decimal(14,2) DEFAULT NULL,
+  `expense4` decimal(14,2) DEFAULT NULL,
+  `expense5` decimal(14,2) DEFAULT NULL,
+  `totexpense` decimal(14,2) DEFAULT NULL,
+  `expenseacc1` int(11) DEFAULT NULL,
+  `expenseacc2` int(11) DEFAULT NULL,
+  `expenseacc3` int(11) DEFAULT NULL,
+  `expenseacc4` int(11) DEFAULT NULL,
+  `expenseacc5` int(11) DEFAULT NULL,
+  `offer_id` int(11) DEFAULT NULL,
+  `tawla_paid` tinyint(1) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `is_mat` tinyint(1) DEFAULT NULL,
+  `is_manfc` tinyint(1) DEFAULT NULL,
+  `is_complete` tinyint(1) DEFAULT NULL,
+  `network_type` int(11) DEFAULT NULL,
+  `cash_part` decimal(14,2) DEFAULT NULL,
+  `network_part` decimal(14,2) DEFAULT NULL,
+  `center` int(11) DEFAULT NULL,
+  `agel_date` datetime DEFAULT NULL,
+  `agel_part` decimal(14,2) DEFAULT NULL,
+  `bank_part` decimal(14,2) DEFAULT NULL,
+  `bank2` int(11) DEFAULT NULL,
+  `check_refno` text DEFAULT NULL,
+  `emp_part` decimal(14,2) DEFAULT NULL,
+  `emp` int(11) DEFAULT NULL,
+  `tab3tax` decimal(14,2) DEFAULT NULL,
+  `IS_updated` tinyint(1) DEFAULT NULL,
+  `user_IS_updated` int(11) DEFAULT NULL,
+  `IS_Temp` tinyint(1) DEFAULT NULL,
+  `dlevman` int(11) DEFAULT NULL,
+  `kiychen_done` tinyint(1) DEFAULT NULL,
+  `rest_no_day` int(11) DEFAULT NULL,
+  `coboun` tinyint(1) DEFAULT NULL,
+  `coboun_id` int(11) DEFAULT NULL,
+  `coboun_Dis` decimal(14,2) DEFAULT NULL,
+  `date_delevGoes` datetime DEFAULT NULL,
+  `date_delevCome` datetime DEFAULT NULL,
+  `date_come` datetime DEFAULT NULL,
+  `date_go` datetime DEFAULT NULL,
+  `voucher_code` text DEFAULT NULL,
+  `voucher_value` int(11) DEFAULT NULL,
+  `pc` text DEFAULT NULL,
+  `printed_recipt` datetime DEFAULT NULL,
+  `persons` int(11) DEFAULT NULL,
+  `inv_notes` text DEFAULT NULL,
+  UNIQUE KEY `ux_inv_proc_id` (`proc_id`),
+  KEY `ix_inv_dd` (`date`),
+  KEY `ix_inv_tp` (`IS_Deleted`,`IS_Buy`,`proc_type`),
+  KEY `ix_inv_proc` (`proc_id`),
+  KEY `ix_inv_id` (`id`),
+  KEY `ix_inv_cust` (`cust_id`),
+  KEY `ix_inv_sm` (`salesman`),
+  KEY `ix_inv_branch_id` (`branch`,`id`),
+  KEY `ix_inv_branch_proc` (`branch`,`proc_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== inv_sub =====
+CREATE TABLE `inv_sub` (
+  `id` int(11) DEFAULT NULL,
+  `proc_id` int(11) DEFAULT NULL,
+  `proc_type` int(11) DEFAULT NULL,
+  `currency_from` int(11) DEFAULT NULL,
+  `unit` int(11) DEFAULT NULL,
+  `i1` bigint(20) DEFAULT NULL,
+  `i2` bigint(20) DEFAULT NULL,
+  `val` decimal(12,4) DEFAULT NULL,
+  `val1` decimal(12,4) DEFAULT NULL,
+  `exchange_price` decimal(12,4) DEFAULT NULL,
+  `expire_date` datetime DEFAULT NULL,
+  `taxperc` decimal(6,2) DEFAULT NULL,
+  `taxval` decimal(14,2) DEFAULT NULL,
+  `discount` decimal(14,2) DEFAULT NULL,
+  `expense` decimal(14,2) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `Txtr` text DEFAULT NULL,
+  `kiychen_printed` tinyint(1) DEFAULT NULL,
+  `invpurch` text DEFAULT NULL,
+  `barcode` text DEFAULT NULL,
+  `sale_price` decimal(12,4) DEFAULT NULL,
+  `kiychen_ok` tinyint(1) DEFAULT NULL,
+  `kiychen_no` tinyint(1) DEFAULT NULL,
+  `kiychen_done` tinyint(1) DEFAULT NULL,
+  `kiychen_goes` tinyint(1) DEFAULT NULL,
+  `kiychen_note` text DEFAULT NULL,
+  `date_goes` datetime DEFAULT NULL,
+  `date_date_Done` datetime DEFAULT NULL,
+  UNIQUE KEY `ux_sub_id` (`id`),
+  KEY `ix_sub_cur` (`currency_from`),
+  KEY `ix_sub_proc` (`proc_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== currencies =====
+CREATE TABLE `currencies` (
+  `id` int(11) DEFAULT NULL,
+  `symbol` text DEFAULT NULL,
+  `nameEN` text DEFAULT NULL,
+  `barcode` text DEFAULT NULL,
+  `is_mezan` tinyint(1) DEFAULT NULL,
+  `group_id` int(11) DEFAULT NULL,
+  `unit` int(11) DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `purch_price` decimal(12,4) DEFAULT NULL,
+  `purchdollar` decimal(12,4) DEFAULT NULL,
+  `sale_price` decimal(12,4) DEFAULT NULL,
+  `price_source` varchar(16) DEFAULT NULL,
+  `saledollar` decimal(12,4) DEFAULT NULL,
+  `sale_reb7` decimal(12,4) DEFAULT NULL,
+  `limit` int(11) DEFAULT NULL,
+  `tax` decimal(6,2) DEFAULT NULL,
+  `discount` decimal(12,4) DEFAULT NULL,
+  `tax_group` int(11) DEFAULT NULL,
+  `minprice` decimal(12,4) DEFAULT NULL,
+  `group2` int(11) DEFAULT NULL,
+  `wholesale` int(11) DEFAULT NULL,
+  `offersale` int(11) DEFAULT NULL,
+  `whole_price` decimal(12,4) DEFAULT NULL,
+  `G_reb7` decimal(12,4) DEFAULT NULL,
+  `offer_price` decimal(12,4) DEFAULT NULL,
+  `D_reb7` decimal(12,4) DEFAULT NULL,
+  `type` int(11) DEFAULT NULL,
+  `no` text DEFAULT NULL,
+  `ref_no` text DEFAULT NULL,
+  `ref_vendor` int(11) DEFAULT NULL,
+  `ref_price` decimal(12,4) DEFAULT NULL,
+  `ref_quan` decimal(12,4) DEFAULT NULL,
+  `outoffer` tinyint(1) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `stock_address` text DEFAULT NULL,
+  `i1` int(11) DEFAULT NULL,
+  `i2` int(11) DEFAULT NULL,
+  `imge` text DEFAULT NULL,
+  `web_sku` text DEFAULT NULL,
+  `web_item_category_id` text DEFAULT NULL,
+  `chk_fast_menu` tinyint(1) DEFAULT NULL,
+  `item_orders` int(11) DEFAULT NULL,
+  `stock` int(11) DEFAULT NULL,
+  `slug` text DEFAULT NULL,
+  `offer_until` datetime DEFAULT NULL,
+  UNIQUE KEY `ux_cur_id` (`id`),
+  KEY `ix_cur_grp` (`group_id`),
+  KEY `ix_cur_unit` (`unit`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== item_bal =====
+CREATE TABLE `item_bal` (
+  `id` int(11) NOT NULL,
+  `bal` decimal(14,4) NOT NULL DEFAULT 0.0000,
+  `updated` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== customers =====
+CREATE TABLE `customers` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `country` int(11) DEFAULT NULL,
+  `city` int(11) DEFAULT NULL,
+  `area` int(11) DEFAULT NULL,
+  `act` int(11) DEFAULT NULL,
+  `national_id` text DEFAULT NULL,
+  `tel` text DEFAULT NULL,
+  `mobile` text DEFAULT NULL,
+  `fax` text DEFAULT NULL,
+  `email` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `maxdepit` double DEFAULT NULL,
+  `type` int(11) DEFAULT NULL,
+  `tax_no` text DEFAULT NULL,
+  `sec` tinyint(1) DEFAULT NULL,
+  `discount_balance` double DEFAULT NULL,
+  `type_s` int(11) DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `imge` text DEFAULT NULL,
+  `nation` text DEFAULT NULL,
+  `accountNo` bigint(20) DEFAULT NULL,
+  `mobile2` text DEFAULT NULL,
+  `mobile3` text DEFAULT NULL,
+  `mobile4` text DEFAULT NULL,
+  `mobile5` text DEFAULT NULL,
+  `Address1` text DEFAULT NULL,
+  `Address2` text DEFAULT NULL,
+  `Address3` text DEFAULT NULL,
+  `cust_user` text DEFAULT NULL,
+  `cust_pass` text DEFAULT NULL,
+  `delevry_costs` int(11) DEFAULT NULL,
+  UNIQUE KEY `ux_cust_id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== users =====
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `emp` int(11) DEFAULT NULL,
+  `username` text DEFAULT NULL,
+  `pwd` text DEFAULT NULL,
+  `edit_inv` tinyint(1) DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `edit_disc` tinyint(1) DEFAULT NULL,
+  `edit_price` tinyint(1) DEFAULT NULL,
+  `edit_date` tinyint(1) DEFAULT NULL,
+  `item_disc` double DEFAULT NULL,
+  `inv_disc` double DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== user_perms =====
+CREATE TABLE `user_perms` (
+  `user_id` int(11) NOT NULL,
+  `perm` varchar(64) NOT NULL,
+  `val` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`user_id`,`perm`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== branches =====
+CREATE TABLE `branches` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `Tel` text DEFAULT NULL,
+  `Mobile` text DEFAULT NULL,
+  `Fax` text DEFAULT NULL,
+  `Email` text DEFAULT NULL,
+  `Address` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `is_main` tinyint(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== pay_methods =====
+CREATE TABLE `pay_methods` (
+  `id` int(11) NOT NULL,
+  `name` varchar(64) NOT NULL,
+  `active` tinyint(4) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== app_settings =====
+CREATE TABLE `app_settings` (
+  `k` varchar(64) NOT NULL,
+  `v` text DEFAULT NULL,
+  PRIMARY KEY (`k`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== rs_seq =====
+CREATE TABLE `rs_seq` (
+  `name` varchar(32) NOT NULL,
+  `val` bigint(20) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== rs_sync =====
+CREATE TABLE `rs_sync` (
+  `k` varchar(64) NOT NULL,
+  `v` text DEFAULT NULL,
+  PRIMARY KEY (`k`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== loyalty =====
+CREATE TABLE `loyalty` (
+  `cust_id` int(11) NOT NULL,
+  `points` int(11) NOT NULL DEFAULT 0,
+  `total_earned` int(11) NOT NULL DEFAULT 0,
+  `total_redeemed` int(11) NOT NULL DEFAULT 0,
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`cust_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== loyalty_log =====
+CREATE TABLE `loyalty_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cust_id` int(11) NOT NULL,
+  `points` int(11) NOT NULL,
+  `type` enum('earn','redeem','adjust') NOT NULL,
+  `inv_id` int(11) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_cust` (`cust_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== wardya =====
+CREATE TABLE `wardya` (
+  `id` int(11) DEFAULT NULL,
+  `wardya_no` int(11) DEFAULT NULL,
+  `date_open` datetime DEFAULT NULL,
+  `user_open` int(11) DEFAULT NULL,
+  `date_close` datetime DEFAULT NULL,
+  `user_close` int(11) DEFAULT NULL,
+  `IS_open` tinyint(1) DEFAULT NULL,
+  `net` double DEFAULT NULL,
+  `day_no` int(11) DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `close_remotly` tinyint(1) DEFAULT NULL,
+  `pc_open` text DEFAULT NULL,
+  `pc_close` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== restrictions =====
+CREATE TABLE `restrictions` (
+  `id` int(11) DEFAULT NULL,
+  `date` datetime DEFAULT NULL,
+  `doc_no` int(11) DEFAULT NULL,
+  `type` int(11) DEFAULT NULL,
+  `state` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `omla` int(11) DEFAULT NULL,
+  `omlaval` double DEFAULT NULL,
+  KEY `ix_r_dt` (`date`),
+  KEY `ix_r_id` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== restrictions_sub =====
+CREATE TABLE `restrictions_sub` (
+  `res_id` int(11) DEFAULT NULL,
+  `date` datetime DEFAULT NULL,
+  `dept` double DEFAULT NULL,
+  `credit` double DEFAULT NULL,
+  `acc_no` bigint(20) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `omla` int(11) DEFAULT NULL,
+  `omlaval` double DEFAULT NULL,
+  `center` int(11) DEFAULT NULL,
+  KEY `ix_rs_res` (`res_id`),
+  KEY `ix_rs_acc` (`acc_no`),
+  KEY `ix_rs_dt` (`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== gard =====
+CREATE TABLE `gard` (
+  `id` int(11) NOT NULL,
+  `date` datetime DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `emp_name` text DEFAULT NULL,
+  `emp_id` int(11) DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `tot_quntity` int(11) DEFAULT NULL,
+  `tot_items` int(11) DEFAULT NULL,
+  `tot_sale` int(11) DEFAULT NULL,
+  `tot_purch` int(11) DEFAULT NULL,
+  `is_deleted` tinyint(1) DEFAULT NULL,
+  `safe` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== gard_sub =====
+CREATE TABLE `gard_sub` (
+  `sub_id` int(11) DEFAULT NULL,
+  `GARD_id` int(11) DEFAULT NULL,
+  `code` text DEFAULT NULL,
+  `barcode` text DEFAULT NULL,
+  `item_name` text DEFAULT NULL,
+  `unit_name` text DEFAULT NULL,
+  `group_name` text DEFAULT NULL,
+  `purch` int(11) DEFAULT NULL,
+  `purchD` int(11) DEFAULT NULL,
+  `purchLD` text DEFAULT NULL,
+  `Sale` int(11) DEFAULT NULL,
+  `SaleD` int(11) DEFAULT NULL,
+  `saleLD` text DEFAULT NULL,
+  `mezan` tinyint(1) DEFAULT NULL,
+  `quintity` int(11) DEFAULT NULL,
+  `quintityD` text DEFAULT NULL,
+  `tot_sale` int(11) DEFAULT NULL,
+  `tot_purch` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `sys_Qty` int(11) DEFAULT NULL,
+  `settlement` int(11) DEFAULT NULL,
+  `adds` tinyint(1) DEFAULT NULL,
+  `settlement_done` tinyint(1) DEFAULT NULL,
+  KEY `ix_gs_gard` (`GARD_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== count_list =====
+CREATE TABLE `count_list` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` int(11) NOT NULL,
+  `name` text NOT NULL,
+  `counted` double NOT NULL DEFAULT 0,
+  `balance` double NOT NULL DEFAULT 0,
+  `exp_date` varchar(12) NOT NULL DEFAULT '',
+  `note` text DEFAULT NULL,
+  `username` varchar(64) NOT NULL DEFAULT '',
+  `posted` tinyint(4) NOT NULL DEFAULT 0,
+  `created` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== accounts_index =====
+CREATE TABLE `accounts_index` (
+  `Code` bigint(20) NOT NULL,
+  `AName` text DEFAULT NULL,
+  `Nature` int(11) DEFAULT NULL,
+  `Type` int(11) DEFAULT NULL,
+  `ParentCode` bigint(20) DEFAULT NULL,
+  `Date` datetime DEFAULT NULL,
+  `UserName` text DEFAULT NULL,
+  `IValue` double DEFAULT NULL,
+  `FinalAcc` int(11) DEFAULT NULL,
+  `Total_Debts` double DEFAULT NULL,
+  `Total_Credits` double DEFAULT NULL,
+  `Account_Value` double DEFAULT NULL,
+  `Acc_branch` int(11) DEFAULT NULL,
+  `acc_level` int(11) DEFAULT NULL,
+  `is_center` tinyint(1) DEFAULT NULL,
+  `default_center` int(11) DEFAULT NULL,
+  `cust_type` int(11) DEFAULT NULL,
+  PRIMARY KEY (`Code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== groups =====
+CREATE TABLE `groups` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `nameEN` text DEFAULT NULL,
+  `color` int(11) DEFAULT NULL,
+  `printer` text DEFAULT NULL,
+  `parent_id` int(11) DEFAULT NULL,
+  `dis` int(11) DEFAULT NULL,
+  `main_groups` int(11) DEFAULT NULL,
+  `PACKUP_Printers` text DEFAULT NULL,
+  `printer_count` int(11) DEFAULT NULL,
+  `PACKUP_Printers_count` int(11) DEFAULT NULL,
+  `web_id` text DEFAULT NULL,
+  `web_cat_parent_id` text DEFAULT NULL,
+  `group_orders` int(11) DEFAULT NULL,
+  `image_path` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== units =====
+CREATE TABLE `units` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `count` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== curr_units =====
+CREATE TABLE `curr_units` (
+  `curr` int(11) DEFAULT NULL,
+  `unit` int(11) DEFAULT NULL,
+  `perc` double DEFAULT NULL,
+  `purch` double DEFAULT NULL,
+  `sale` double DEFAULT NULL,
+  `barcode` text DEFAULT NULL,
+  `offer` double DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== curr_barcodes =====
+CREATE TABLE `curr_barcodes` (
+  `curr` int(11) DEFAULT NULL,
+  `barcode` text DEFAULT NULL,
+  UNIQUE KEY `ux_curr_barcode` (`curr`,`barcode`) USING HASH
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== banks =====
+CREATE TABLE `banks` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `country` int(11) DEFAULT NULL,
+  `city` int(11) DEFAULT NULL,
+  `area` int(11) DEFAULT NULL,
+  `tel` text DEFAULT NULL,
+  `mobile` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `accountNo` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== safes =====
+CREATE TABLE `safes` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `status` int(11) DEFAULT NULL,
+  `IS_Default` tinyint(1) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `tel` text DEFAULT NULL,
+  `showdata` tinyint(1) DEFAULT NULL,
+  `mob` text DEFAULT NULL,
+  `accountNo` bigint(20) DEFAULT NULL,
+  `online` tinyint(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== companies =====
+CREATE TABLE `companies` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `Tel` text DEFAULT NULL,
+  `Mobile` text DEFAULT NULL,
+  `Fax` text DEFAULT NULL,
+  `Email` text DEFAULT NULL,
+  `Address` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `dbname` text DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `name_en` varchar(128) DEFAULT '',
+  `activity` varchar(128) DEFAULT '',
+  `license_no` varchar(64) DEFAULT '',
+  `comm_reg` varchar(64) DEFAULT '',
+  `tax_no` varchar(64) DEFAULT '',
+  `tax_pct` double DEFAULT 0,
+  `email2` varchar(128) DEFAULT '',
+  `website` varchar(128) DEFAULT '',
+  `address2` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== coboun =====
+CREATE TABLE `coboun` (
+  `id` int(11) DEFAULT NULL,
+  `code_name` text DEFAULT NULL,
+  `date_start` date DEFAULT NULL,
+  `date_end` date DEFAULT NULL,
+  `active` tinyint(1) DEFAULT NULL,
+  `discount` int(11) DEFAULT NULL,
+  `for_clients` int(11) DEFAULT NULL,
+  `Is_deleted` tinyint(1) DEFAULT NULL,
+  `clients_group` int(11) DEFAULT NULL,
+  `Branch` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== salesmen =====
+CREATE TABLE `salesmen` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `comm` double DEFAULT NULL,
+  `tel` text DEFAULT NULL,
+  `mobile` text DEFAULT NULL,
+  `email` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `dlev` tinyint(1) DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `IS_EMP` tinyint(1) DEFAULT NULL,
+  `emp_id` int(11) DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== stocks =====
+CREATE TABLE `stocks` (
+  `id` int(11) DEFAULT NULL,
+  `name` text DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `status` int(11) DEFAULT NULL,
+  `IS_Default` tinyint(1) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `IS_Deleted` tinyint(1) DEFAULT NULL,
+  `accountNo` bigint(20) DEFAULT NULL,
+  `online` tinyint(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== rs_count =====
+CREATE TABLE `rs_count` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` int(11) NOT NULL,
+  `counted` double NOT NULL DEFAULT 0,
+  `created` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== twreed_srf =====
+CREATE TABLE `twreed_srf` (
+  `id` int(11) DEFAULT NULL,
+  `no` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `type` int(11) DEFAULT NULL,
+  `date` datetime DEFAULT NULL,
+  `safe` int(11) DEFAULT NULL,
+  `refno` text DEFAULT NULL,
+  `branch` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `Gard_id` int(11) DEFAULT NULL,
+  `is_deleted` tinyint(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== _orphan_sub =====
+CREATE TABLE `_orphan_sub` (
+  `id` int(11) DEFAULT NULL,
+  `proc_id` int(11) DEFAULT NULL,
+  `proc_type` int(11) DEFAULT NULL,
+  `currency_from` int(11) DEFAULT NULL,
+  `unit` int(11) DEFAULT NULL,
+  `i1` bigint(20) DEFAULT NULL,
+  `i2` bigint(20) DEFAULT NULL,
+  `val` double DEFAULT NULL,
+  `val1` double DEFAULT NULL,
+  `exchange_price` double DEFAULT NULL,
+  `expire_date` datetime DEFAULT NULL,
+  `taxperc` double DEFAULT NULL,
+  `taxval` double DEFAULT NULL,
+  `discount` double DEFAULT NULL,
+  `expense` double DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `Txtr` text DEFAULT NULL,
+  `kiychen_printed` tinyint(1) DEFAULT NULL,
+  `invpurch` text DEFAULT NULL,
+  `barcode` text DEFAULT NULL,
+  `sale_price` int(11) DEFAULT NULL,
+  `kiychen_ok` tinyint(1) DEFAULT NULL,
+  `kiychen_no` tinyint(1) DEFAULT NULL,
+  `kiychen_done` tinyint(1) DEFAULT NULL,
+  `kiychen_goes` tinyint(1) DEFAULT NULL,
+  `kiychen_note` text DEFAULT NULL,
+  `date_goes` datetime DEFAULT NULL,
+  `date_date_Done` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== audit_log =====
+CREATE TABLE `audit_log` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `ts` datetime NOT NULL,
+  `uid` int(11) NOT NULL DEFAULT 0,
+  `uname` varchar(64) NOT NULL DEFAULT '',
+  `action` varchar(16) NOT NULL,
+  `entity` varchar(32) NOT NULL,
+  `entity_id` bigint(20) NOT NULL DEFAULT 0,
+  `detail` varchar(500) NOT NULL DEFAULT '',
+  `ip` varchar(45) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  KEY `audit_ts` (`ts`),
+  KEY `audit_ent` (`entity`,`entity_id`),
+  KEY `audit_uid` (`uid`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+===== VIEW v_inv_99 =====
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_inv_99` AS select `inv`.`proc_id` AS `proc_id`,`inv`.`proc_type` AS `proc_type`,`inv`.`id` AS `id`,`inv`.`date` AS `date`,`inv`.`inv_type` AS `inv_type`,`inv`.`safe` AS `safe`,`inv`.`stock` AS `stock`,`inv`.`cust_id` AS `cust_id`,`inv`.`sales_emp` AS `sales_emp`,`inv`.`tot_purch` AS `tot_purch`,`inv`.`tot_sale` AS `tot_sale`,`inv`.`tot_net` AS `tot_net`,`inv`.`purch_rest_id` AS `purch_rest_id`,`inv`.`sale_rest_id` AS `sale_rest_id`,`inv`.`InvId_Return` AS `InvId_Return`,`inv`.`branch` AS `branch`,`inv`.`IS_Buy` AS `IS_Buy`,`inv`.`IS_Deleted` AS `IS_Deleted`,`inv`.`user_IS_Deleted` AS `user_IS_Deleted`,`inv`.`minus` AS `minus`,`inv`.`paid` AS `paid`,`inv`.`salesman` AS `salesman`,`inv`.`tax` AS `tax`,`inv`.`pay_type` AS `pay_type`,`inv`.`bank` AS `bank`,`inv`.`tax_ats` AS `tax_ats`,`inv`.`disc` AS `disc`,`inv`.`refno` AS `refno`,`inv`.`cust_disc` AS `cust_disc`,`inv`.`custdiscadd` AS `custdiscadd`,`inv`.`rest_type` AS `rest_type`,`inv`.`tawla` AS `tawla`,`inv`.`delivery` AS `delivery`,`inv`.`reserv_custname` AS `reserv_custname`,`inv`.`reserv_custtel` AS `reserv_custtel`,`inv`.`reserv_custtel2` AS `reserv_custtel2`,`inv`.`reserv_custadd` AS `reserv_custadd`,`inv`.`reserv_date` AS `reserv_date`,`inv`.`reserv_notes` AS `reserv_notes`,`inv`.`mobapp_id` AS `mobapp_id`,`inv`.`fees` AS `fees`,`inv`.`client_type` AS `client_type`,`inv`.`client_name` AS `client_name`,`inv`.`client_mobile` AS `client_mobile`,`inv`.`costadd` AS `costadd`,`inv`.`is_tfseel` AS `is_tfseel`,`inv`.`is_tfseelrec` AS `is_tfseelrec`,`inv`.`expense1` AS `expense1`,`inv`.`expense2` AS `expense2`,`inv`.`expense3` AS `expense3`,`inv`.`expense4` AS `expense4`,`inv`.`expense5` AS `expense5`,`inv`.`totexpense` AS `totexpense`,`inv`.`expenseacc1` AS `expenseacc1`,`inv`.`expenseacc2` AS `expenseacc2`,`inv`.`expenseacc3` AS `expenseacc3`,`inv`.`expenseacc4` AS `expenseacc4`,`inv`.`expenseacc5` AS `expenseacc5`,`inv`.`offer_id` AS `offer_id`,`inv`.`tawla_paid` AS `tawla_paid`,`inv`.`notes` AS `notes`,`inv`.`is_mat` AS `is_mat`,`inv`.`is_manfc` AS `is_manfc`,`inv`.`is_complete` AS `is_complete`,`inv`.`network_type` AS `network_type`,`inv`.`cash_part` AS `cash_part`,`inv`.`network_part` AS `network_part`,`inv`.`center` AS `center`,`inv`.`agel_date` AS `agel_date`,`inv`.`agel_part` AS `agel_part`,`inv`.`bank_part` AS `bank_part`,`inv`.`bank2` AS `bank2`,`inv`.`check_refno` AS `check_refno`,`inv`.`emp_part` AS `emp_part`,`inv`.`emp` AS `emp`,`inv`.`tab3tax` AS `tab3tax`,`inv`.`IS_updated` AS `IS_updated`,`inv`.`user_IS_updated` AS `user_IS_updated`,`inv`.`IS_Temp` AS `IS_Temp`,`inv`.`dlevman` AS `dlevman`,`inv`.`kiychen_done` AS `kiychen_done`,`inv`.`rest_no_day` AS `rest_no_day`,`inv`.`coboun` AS `coboun`,`inv`.`coboun_id` AS `coboun_id`,`inv`.`coboun_Dis` AS `coboun_Dis`,`inv`.`date_delevGoes` AS `date_delevGoes`,`inv`.`date_delevCome` AS `date_delevCome`,`inv`.`date_come` AS `date_come`,`inv`.`date_go` AS `date_go`,`inv`.`voucher_code` AS `voucher_code`,`inv`.`voucher_value` AS `voucher_value`,`inv`.`pc` AS `pc`,`inv`.`printed_recipt` AS `printed_recipt`,`inv`.`persons` AS `persons`,`inv`.`inv_notes` AS `inv_notes` from `inv` where `inv`.`branch` = 99
+===== VIEW v_inv_main =====
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_inv_main` AS select `inv`.`proc_id` AS `proc_id`,`inv`.`proc_type` AS `proc_type`,`inv`.`id` AS `id`,`inv`.`date` AS `date`,`inv`.`inv_type` AS `inv_type`,`inv`.`safe` AS `safe`,`inv`.`stock` AS `stock`,`inv`.`cust_id` AS `cust_id`,`inv`.`sales_emp` AS `sales_emp`,`inv`.`tot_purch` AS `tot_purch`,`inv`.`tot_sale` AS `tot_sale`,`inv`.`tot_net` AS `tot_net`,`inv`.`purch_rest_id` AS `purch_rest_id`,`inv`.`sale_rest_id` AS `sale_rest_id`,`inv`.`InvId_Return` AS `InvId_Return`,`inv`.`branch` AS `branch`,`inv`.`IS_Buy` AS `IS_Buy`,`inv`.`IS_Deleted` AS `IS_Deleted`,`inv`.`user_IS_Deleted` AS `user_IS_Deleted`,`inv`.`minus` AS `minus`,`inv`.`paid` AS `paid`,`inv`.`salesman` AS `salesman`,`inv`.`tax` AS `tax`,`inv`.`pay_type` AS `pay_type`,`inv`.`bank` AS `bank`,`inv`.`tax_ats` AS `tax_ats`,`inv`.`disc` AS `disc`,`inv`.`refno` AS `refno`,`inv`.`cust_disc` AS `cust_disc`,`inv`.`custdiscadd` AS `custdiscadd`,`inv`.`rest_type` AS `rest_type`,`inv`.`tawla` AS `tawla`,`inv`.`delivery` AS `delivery`,`inv`.`reserv_custname` AS `reserv_custname`,`inv`.`reserv_custtel` AS `reserv_custtel`,`inv`.`reserv_custtel2` AS `reserv_custtel2`,`inv`.`reserv_custadd` AS `reserv_custadd`,`inv`.`reserv_date` AS `reserv_date`,`inv`.`reserv_notes` AS `reserv_notes`,`inv`.`mobapp_id` AS `mobapp_id`,`inv`.`fees` AS `fees`,`inv`.`client_type` AS `client_type`,`inv`.`client_name` AS `client_name`,`inv`.`client_mobile` AS `client_mobile`,`inv`.`costadd` AS `costadd`,`inv`.`is_tfseel` AS `is_tfseel`,`inv`.`is_tfseelrec` AS `is_tfseelrec`,`inv`.`expense1` AS `expense1`,`inv`.`expense2` AS `expense2`,`inv`.`expense3` AS `expense3`,`inv`.`expense4` AS `expense4`,`inv`.`expense5` AS `expense5`,`inv`.`totexpense` AS `totexpense`,`inv`.`expenseacc1` AS `expenseacc1`,`inv`.`expenseacc2` AS `expenseacc2`,`inv`.`expenseacc3` AS `expenseacc3`,`inv`.`expenseacc4` AS `expenseacc4`,`inv`.`expenseacc5` AS `expenseacc5`,`inv`.`offer_id` AS `offer_id`,`inv`.`tawla_paid` AS `tawla_paid`,`inv`.`notes` AS `notes`,`inv`.`is_mat` AS `is_mat`,`inv`.`is_manfc` AS `is_manfc`,`inv`.`is_complete` AS `is_complete`,`inv`.`network_type` AS `network_type`,`inv`.`cash_part` AS `cash_part`,`inv`.`network_part` AS `network_part`,`inv`.`center` AS `center`,`inv`.`agel_date` AS `agel_date`,`inv`.`agel_part` AS `agel_part`,`inv`.`bank_part` AS `bank_part`,`inv`.`bank2` AS `bank2`,`inv`.`check_refno` AS `check_refno`,`inv`.`emp_part` AS `emp_part`,`inv`.`emp` AS `emp`,`inv`.`tab3tax` AS `tab3tax`,`inv`.`IS_updated` AS `IS_updated`,`inv`.`user_IS_updated` AS `user_IS_updated`,`inv`.`IS_Temp` AS `IS_Temp`,`inv`.`dlevman` AS `dlevman`,`inv`.`kiychen_done` AS `kiychen_done`,`inv`.`rest_no_day` AS `rest_no_day`,`inv`.`coboun` AS `coboun`,`inv`.`coboun_id` AS `coboun_id`,`inv`.`coboun_Dis` AS `coboun_Dis`,`inv`.`date_delevGoes` AS `date_delevGoes`,`inv`.`date_delevCome` AS `date_delevCome`,`inv`.`date_come` AS `date_come`,`inv`.`date_go` AS `date_go`,`inv`.`voucher_code` AS `voucher_code`,`inv`.`voucher_value` AS `voucher_value`,`inv`.`pc` AS `pc`,`inv`.`printed_recipt` AS `printed_recipt`,`inv`.`persons` AS `persons`,`inv`.`inv_notes` AS `inv_notes` from `inv` where `inv`.`branch` <> 99
+===== VIEW v_sales_today =====
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_sales_today` AS select `inv`.`proc_id` AS `proc_id`,`inv`.`proc_type` AS `proc_type`,`inv`.`id` AS `id`,`inv`.`date` AS `date`,`inv`.`inv_type` AS `inv_type`,`inv`.`safe` AS `safe`,`inv`.`stock` AS `stock`,`inv`.`cust_id` AS `cust_id`,`inv`.`sales_emp` AS `sales_emp`,`inv`.`tot_purch` AS `tot_purch`,`inv`.`tot_sale` AS `tot_sale`,`inv`.`tot_net` AS `tot_net`,`inv`.`purch_rest_id` AS `purch_rest_id`,`inv`.`sale_rest_id` AS `sale_rest_id`,`inv`.`InvId_Return` AS `InvId_Return`,`inv`.`branch` AS `branch`,`inv`.`IS_Buy` AS `IS_Buy`,`inv`.`IS_Deleted` AS `IS_Deleted`,`inv`.`user_IS_Deleted` AS `user_IS_Deleted`,`inv`.`minus` AS `minus`,`inv`.`paid` AS `paid`,`inv`.`salesman` AS `salesman`,`inv`.`tax` AS `tax`,`inv`.`pay_type` AS `pay_type`,`inv`.`bank` AS `bank`,`inv`.`tax_ats` AS `tax_ats`,`inv`.`disc` AS `disc`,`inv`.`refno` AS `refno`,`inv`.`cust_disc` AS `cust_disc`,`inv`.`custdiscadd` AS `custdiscadd`,`inv`.`rest_type` AS `rest_type`,`inv`.`tawla` AS `tawla`,`inv`.`delivery` AS `delivery`,`inv`.`reserv_custname` AS `reserv_custname`,`inv`.`reserv_custtel` AS `reserv_custtel`,`inv`.`reserv_custtel2` AS `reserv_custtel2`,`inv`.`reserv_custadd` AS `reserv_custadd`,`inv`.`reserv_date` AS `reserv_date`,`inv`.`reserv_notes` AS `reserv_notes`,`inv`.`mobapp_id` AS `mobapp_id`,`inv`.`fees` AS `fees`,`inv`.`client_type` AS `client_type`,`inv`.`client_name` AS `client_name`,`inv`.`client_mobile` AS `client_mobile`,`inv`.`costadd` AS `costadd`,`inv`.`is_tfseel` AS `is_tfseel`,`inv`.`is_tfseelrec` AS `is_tfseelrec`,`inv`.`expense1` AS `expense1`,`inv`.`expense2` AS `expense2`,`inv`.`expense3` AS `expense3`,`inv`.`expense4` AS `expense4`,`inv`.`expense5` AS `expense5`,`inv`.`totexpense` AS `totexpense`,`inv`.`expenseacc1` AS `expenseacc1`,`inv`.`expenseacc2` AS `expenseacc2`,`inv`.`expenseacc3` AS `expenseacc3`,`inv`.`expenseacc4` AS `expenseacc4`,`inv`.`expenseacc5` AS `expenseacc5`,`inv`.`offer_id` AS `offer_id`,`inv`.`tawla_paid` AS `tawla_paid`,`inv`.`notes` AS `notes`,`inv`.`is_mat` AS `is_mat`,`inv`.`is_manfc` AS `is_manfc`,`inv`.`is_complete` AS `is_complete`,`inv`.`network_type` AS `network_type`,`inv`.`cash_part` AS `cash_part`,`inv`.`network_part` AS `network_part`,`inv`.`center` AS `center`,`inv`.`agel_date` AS `agel_date`,`inv`.`agel_part` AS `agel_part`,`inv`.`bank_part` AS `bank_part`,`inv`.`bank2` AS `bank2`,`inv`.`check_refno` AS `check_refno`,`inv`.`emp_part` AS `emp_part`,`inv`.`emp` AS `emp`,`inv`.`tab3tax` AS `tab3tax`,`inv`.`IS_updated` AS `IS_updated`,`inv`.`user_IS_updated` AS `user_IS_updated`,`inv`.`IS_Temp` AS `IS_Temp`,`inv`.`dlevman` AS `dlevman`,`inv`.`kiychen_done` AS `kiychen_done`,`inv`.`rest_no_day` AS `rest_no_day`,`inv`.`coboun` AS `coboun`,`inv`.`coboun_id` AS `coboun_id`,`inv`.`coboun_Dis` AS `coboun_Dis`,`inv`.`date_delevGoes` AS `date_delevGoes`,`inv`.`date_delevCome` AS `date_delevCome`,`inv`.`date_come` AS `date_come`,`inv`.`date_go` AS `date_go`,`inv`.`voucher_code` AS `voucher_code`,`inv`.`voucher_value` AS `voucher_value`,`inv`.`pc` AS `pc`,`inv`.`printed_recipt` AS `printed_recipt`,`inv`.`persons` AS `persons`,`inv`.`inv_notes` AS `inv_notes` from `inv` where `inv`.`IS_Deleted` = 0 and `inv`.`IS_Buy` = 0 and `inv`.`proc_type` = 1 and cast(`inv`.`date` as date) = curdate()
+===== VIEW v_stock =====
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_stock` AS select `c`.`id` AS `id`,`c`.`symbol` AS `name`,ifnull(`b`.`bal`,0) AS `bal`,`c`.`sale_price` AS `sale_price`,`c`.`purch_price` AS `purch_price`,`c`.`group_id` AS `group_id` from (`currencies` `c` left join `item_bal` `b` on(`b`.`id` = `c`.`id`)) where `c`.`IS_Deleted` = 0
+===== BRANCHES DATA =====
+{"id":1,"name":"الفرع الرئيسي","Tel":null,"Mobile":null,"Fax":null,"Email":null,"Address":null,"notes":null,"IS_Deleted":0,"is_main":0}
+===== RS_SYNC DATA =====
+{"k":"rs_last_added","v":"6"}
+{"k":"rs_last_proc","v":"18735"}
+{"k":"rs_last_run","v":"2026-10-26 11:34:47"}
+{"k":"rs_max_id","v":"18443"}
