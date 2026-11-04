@@ -166,6 +166,58 @@ Public Class SecurityAndInventoryTests
     End Sub
 
     <Fact>
+    Public Sub CollectionSettlesInvoicesAndFreesTheCreditCeiling()
+        Dim day = _db.NextTestDate()
+        Dim code As String = "CO-" & Guid.NewGuid().ToString("N").Substring(0, 8)
+        Dim itemId = _db.CreateItemWithStock(code, 100D, 40D, 5D)
+        Dim customerId = CreateCustomer("عميل تحصيل " & code, 100D)
+        Dim session = _db.Session()
+
+        session.Permissions.Add(Permissions.SalesCreditOverride)
+        Dim firstRequest = SaleFor(itemId, 1D, 120D, day, paid:=0D, customerId:=customerId)
+        Dim first = SalesService.PostSale(session, firstRequest)
+        session.Permissions.Remove(Permissions.SalesCreditOverride)
+
+        Dim blockedRequest = SaleFor(itemId, 1D, 90D, day, paid:=0D, customerId:=customerId)
+        Dim blocked = Assert.Throws(Of BusinessException)(Function() SalesService.PostSale(session, blockedRequest))
+        Assert.Contains("سقف الائتمان", blocked.Message)
+
+        Dim partCollect = CustomerCollectionService.Collect(session, customerId, 70D, _db.CashMethodId,
+                                                            Nothing, "دفعة أولى")
+        Assert.Equal(50D, partCollect.RemainingDue)
+        Assert.Equal(1, partCollect.SettledInvoiceCount)
+        Assert.Equal(70D, _db.ScalarDecimal("SELECT paid FROM invoices WHERE id=@i",
+                                           New With {.i = first.InvoiceId}))
+        Assert.Equal(50D, _db.ScalarDecimal("SELECT due FROM invoices WHERE id=@i",
+                                            New With {.i = first.InvoiceId}))
+        Assert.Equal(1L, _db.ScalarLong("SELECT COUNT(*) FROM payments WHERE invoice_id=@i AND amount=70",
+                                        New With {.i = first.InvoiceId}))
+        Assert.Equal(70D, _db.ScalarDecimal(
+            "SELECT COALESCE(SUM(amount),0) FROM cash_moves WHERE ref_type='customer_collection'"))
+        Assert.Equal(50D, _db.ScalarDecimal(
+            "SELECT opening_balance + COALESCE((SELECT SUM(due) FROM invoices WHERE customer_id=@c),0) " &
+            "FROM customers WHERE id=@c", New With {.c = customerId}))
+        Assert.True(_db.JournalIsBalanced())
+
+        Dim settled = CustomerCollectionService.Collect(session, customerId, 50D, _db.CashMethodId,
+                                                        first.InvoiceId, "تسديد كامل")
+        Assert.Equal(0D, settled.RemainingDue)
+        Assert.Equal(0D, _db.ScalarDecimal("SELECT due FROM invoices WHERE id=@i",
+                                           New With {.i = first.InvoiceId}))
+
+        ' The freed ceiling lets the next آجل sale through without any override.
+        Dim secondRequest = SaleFor(itemId, 1D, 90D, day, paid:=0D, customerId:=customerId)
+        Dim second = SalesService.PostSale(session, secondRequest)
+        Assert.Equal(90D, second.Due)
+        Assert.True(_db.JournalIsBalanced())
+
+        Dim tooMuch = Assert.Throws(Of BusinessException)(Sub() CustomerCollectionService.Collect(session, customerId, 1000D, _db.CashMethodId, Nothing, Nothing))
+        Assert.Contains("أكبر من المتبقي", tooMuch.Message)
+        Assert.Equal(90D, _db.ScalarDecimal("SELECT due FROM invoices WHERE id=@i",
+                                            New With {.i = second.InvoiceId}))
+    End Sub
+
+    <Fact>
     Public Sub ExpiredStockCannotBeSold()
         Dim day = _db.NextTestDate()
         Dim code As String = "EX-" & Guid.NewGuid().ToString("N").Substring(0, 8)

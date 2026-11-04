@@ -622,6 +622,7 @@ Public Class MainForm
                 list.Add(New RibbonCardDef("بيانات العملاء", "👥", cNavy, Sub() OpenForm(New CustomersForm(_session, "customer"))))
                 list.Add(New RibbonCardDef("نقاطي", "⭐", cGold, Sub() OpenForm(New LoyaltyForm(_session))))
                 list.Add(New RibbonCardDef("أرصدة حسابات العملاء", "⚖️", cBlue, Sub() OpenForm(New CustomerBalancesForm(_session))))
+                list.Add(New RibbonCardDef("تحصيل آجل", "🧾", cNavy, Sub() OpenForm(New CustomerCollectionForm(_session))))
                 list.Add(New RibbonCardDef("حركة آخر سداد", "💰", cGold, Sub() OpenForm(New CustomerPaymentsForm(_session))))
                 list.Add(New RibbonCardDef("مجموعات العملاء", "📁", cCyan, Sub() OpenForm(New CustomerGroupsForm(_session))))
                 list.Add(New RibbonCardDef("كوبون خصم", "🎟️", cGold, Sub() OpenForm(New CouponsForm(_session))))
@@ -1114,7 +1115,8 @@ Public Class MainForm
             Dim todayInvs = SalesService.ListInvoices(_session, Date.Today, Date.Today, "sale")
             _todayInvoicesCount = todayInvs.Count
             _todaySalesTotal = todayInvs.Sum(Function(x) x.Total)
-        Catch
+        Catch ex As Exception
+            AppLog.Warn("Dashboard today's invoices failed: " & ex.Message)
         End Try
 
         Try
@@ -1125,7 +1127,8 @@ Public Class MainForm
                 Dim exp = ShiftService.ExpectedCash(_session, sh.Id)
                 _shiftStatusText = sh.ShiftNo & " | بالدرج: " & UiTheme.Money(exp)
             End If
-        Catch
+        Catch ex As Exception
+            AppLog.Warn("Dashboard shift status failed: " & ex.Message)
         End Try
 
         UpdateFooterText()
@@ -1169,5 +1172,11 @@ Public Class MainForm
         _timer.Stop()
         _clockTimer.Stop()
         MyBase.OnFormClosing(e)
+    End Sub
+
+    Protected Overrides Sub OnFormClosed(e As FormClosedEventArgs)
+        _timer.Dispose()
+        _clockTimer.Dispose()
+        MyBase.OnFormClosed(e)
     End Sub
 End Class

@@ -129,6 +129,18 @@ Public NotInheritable Class InvoicesRepository
             }, tx)
     End Sub
 
+    ''' <summary>
+    ''' Stores a settlement on an already posted invoice: only the paid/due pair and the
+    ''' payment status change, so the totals, lines and tax of the document stay untouched.
+    ''' </summary>
+    Public Shared Sub SetSettlement(conn As IDbConnection, tx As IDbTransaction, id As Long,
+                                    paid As Decimal, due As Decimal, paymentStatus As String)
+        conn.Execute(
+            "UPDATE invoices SET paid=@paid, due=@due, payment_status=@payStatus " &
+            "WHERE id=@id AND status='posted'",
+            New With {.id = id, .paid = paid, .due = due, .payStatus = paymentStatus}, tx)
+    End Sub
+
     Public Shared Function GetById(conn As IDbConnection, id As Long, Optional tx As IDbTransaction = Nothing) As InvoiceHeaderRecord
         Return conn.QueryFirstOrDefault(Of InvoiceHeaderRecord)(
             "SELECT id, event_id, branch_id, invoice_no, invoice_type, status, customer_id, subtotal, " &

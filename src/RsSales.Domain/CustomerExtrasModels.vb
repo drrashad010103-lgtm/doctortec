@@ -95,6 +95,28 @@ Public Class CustomerPaymentSummary
     End Property
 End Class
 
+''' <summary>A posted invoice that still has an amount due on it.</summary>
+Public Class CustomerDueInvoice
+    Public Property InvoiceId As Long
+    Public Property InvoiceNo As String
+    Public Property BusinessDate As Date
+    Public Property Total As Decimal
+    Public Property Paid As Decimal
+    Public Property Due As Decimal
+End Class
+
+''' <summary>What one تحصيل did: how much it settled, on how many invoices, and what is left.</summary>
+Public Class CustomerCollectionResult
+    Public Property CustomerId As Long
+    Public Property CustomerName As String
+    Public Property Amount As Decimal
+    Public Property MethodName As String
+    Public Property SettledInvoiceCount As Integer
+    Public Property RemainingDue As Decimal
+    Public Property BalanceAfter As Decimal
+    Public Property PaidAt As Date
+End Class
+
 Public Class CouponSummary
     Public Property Id As Long
     Public Property Code As String

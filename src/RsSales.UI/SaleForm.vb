@@ -8,15 +8,6 @@ Imports System.Linq
 Imports System.Text.Json
 Imports System.Windows.Forms
 
-''' <summary>Alias class so callers can instantiate either ProSaleForm or SaleForm.</summary>
-Public Class ProSaleForm
-    Inherits SaleForm
-
-    Public Sub New(session As AppSession)
-        MyBase.New(session)
-    End Sub
-End Class
-
 ''' <summary>
 ''' شاشة الكاشير الاحترافية المتكاملة (Pro POS):
 ''' - إضافة أصناف من قائمة منسدلة ذكية (Drop-Down List) مباشرة بدون بوب أب بحث
@@ -58,16 +49,24 @@ Public Class SaleForm
 
     Private ReadOnly _session As AppSession
     Private ReadOnly _editor As InvoiceEditor
+    Private ReadOnly _collapsibleCards As New List(Of RailCardEntry)
+    ''' <summary>الصنف الذي تم سكانه وينتظر الكمية في الخانة التالية.</summary>
+    Private _pendingItem As ItemSummary
 
-    ' شريط الإضافة السريعة والـ Drop-Down List بدون بوب أب
+    ' خانة واحدة للكود أو الباركود + خانة بحث بالاسم فوق القائمة على اليسار
     Private ReadOnly txtScan As New TextBox()
-    Private ReadOnly txtDropFilter As New TextBox()
+    Private ReadOnly txtDropSearch As New TextBox()
     Private ReadOnly cboItemDrop As New ComboBox()
     Private ReadOnly numDropQty As New NumericUpDown()
     Private ReadOnly btnAddDrop As New Button()
     Private ReadOnly lblPicked As New Label()
     Private ReadOnly lblQty As New Label()
     Private ReadOnly lblShift As New Label()
+    ''' <summary>حروف الكتابة داخل القائمة المنسدلة، والبحث يبدأ بعد التوقف عنها لحظة.</summary>
+    Private _dropTypeBuffer As String = String.Empty
+    Private ReadOnly _dropTypeSearchTimer As New System.Windows.Forms.Timer With {.Interval = 260}
+    ''' <summary>خانة البحث بالاسم فوق القائمة: البحث يبدأ بعد سكتة قصيرة من الكتابة.</summary>
+    Private ReadOnly _dropBoxSearchTimer As New System.Windows.Forms.Timer With {.Interval = 260}
 
     ' شريط العميل والولاء والدفع
     Private ReadOnly txtCustomerSearch As New TextBox()
@@ -292,36 +291,47 @@ Public Class SaleForm
             .Margin = New Padding(0)
         }
 
-        ' خانة إدخال كود الصنف/الباركود في أعلى منتصف الشاشة تمامًا
+        ' الكود في سطر والكمية تحته مباشرة في نفس العمود، والبحث من القائمة على اليسار
         Dim scanBox As New TableLayoutPanel With {
-            .Dock = DockStyle.Fill, .ColumnCount = 3, .RowCount = 1,
+            .Dock = DockStyle.Fill, .ColumnCount = 3, .RowCount = 2,
             .RightToLeft = RightToLeft.Yes, .BackColor = Color.Transparent,
-            .Margin = New Padding(0), .Padding = New Padding(0, 10, 0, 10)
+            .Margin = New Padding(0), .Padding = New Padding(0, 6, 0, 6)
         }
-        scanBox.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 150.0F))
+        scanBox.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 118.0F))
         scanBox.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
-        scanBox.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 116.0F))
+        scanBox.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 92.0F))
+        scanBox.RowStyles.Add(New RowStyle(SizeType.Percent, 50.0F))
+        scanBox.RowStyles.Add(New RowStyle(SizeType.Percent, 50.0F))
 
         Dim lblScanCaption As New Label With {
-            .Text = "كود الصنف / الباركود", .Dock = DockStyle.Fill,
+            .Text = "كود / باركود", .Dock = DockStyle.Fill,
             .TextAlign = ContentAlignment.MiddleRight,
             .Font = UiTheme.Font(9.6F, FontStyle.Bold),
             .ForeColor = Color.White, .BackColor = Color.Transparent,
             .Margin = New Padding(0, 0, 8, 0)
         }
-        txtScan.PlaceholderText = "امسح الباركود أو اكتب الكود ثم Enter"
+        ' خانة واحدة للكود أو الباركود: الكتابة وحدها لا تبحث ولا تفتح القائمة
+        txtScan.PlaceholderText = "اكتب الكود أو الباركود…"
         txtScan.Font = UiTheme.Font(11.5F, FontStyle.Bold)
         txtScan.RightToLeft = RightToLeft.No
         txtScan.TextAlign = HorizontalAlignment.Center
         txtScan.Margin = New Padding(0)
         txtScan.Dock = DockStyle.Fill
+        AddHandler txtScan.TextChanged, Sub(s, e)
+                                            If _suppressDropFilter Then Return
+                                            AddScannedBarcode()
+                                        End Sub
         AddHandler txtScan.KeyDown, Sub(s, e)
                                         If e.KeyCode = Keys.Enter Then
                                             e.SuppressKeyPress = True
                                             AddByScan()
+                                        ElseIf e.KeyCode = Keys.Down AndAlso _dropdownItems.Count > 0 Then
+                                            e.SuppressKeyPress = True
+                                            cboItemDrop.Focus()
+                                            OpenDropdown(cboItemDrop)
                                         End If
                                     End Sub
-        Dim scanBtn As GlassButton = RailButton("📷 باركود", 116, True)
+        Dim scanBtn As GlassButton = RailButton("📷 باركود", 92, True)
         scanBtn.Dock = DockStyle.Fill
         scanBtn.Margin = New Padding(6, 0, 0, 0)
         AddHandler scanBtn.Click, Sub(s, e) AddByScan()
@@ -330,23 +340,195 @@ Public Class SaleForm
         scanBox.Controls.Add(txtScan, 1, 0)
         scanBox.Controls.Add(scanBtn, 2, 0)
 
-        Dim scanHost As New TableLayoutPanel With {
-            .Dock = DockStyle.Fill, .ColumnCount = 3, .RowCount = 1,
-            .BackColor = Color.Transparent, .Margin = New Padding(0)
+        ' === الكمية تحت خانة الكود ==========================================
+        Dim lblQtyCaption As New Label With {
+            .Text = "الكمية", .Dock = DockStyle.Fill,
+            .TextAlign = ContentAlignment.MiddleRight,
+            .Font = UiTheme.Font(9.6F, FontStyle.Bold),
+            .ForeColor = Color.White, .BackColor = Color.Transparent,
+            .Margin = New Padding(0, 6, 8, 0)
         }
-        scanHost.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50.0F))
-        scanHost.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 660.0F))
-        scanHost.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50.0F))
-        scanHost.Controls.Add(scanBox, 1, 0)
+        numDropQty.Minimum = 1D
+        numDropQty.Maximum = 9999D
+        numDropQty.Value = 1D
+        numDropQty.DecimalPlaces = 0
+        numDropQty.Font = UiTheme.Font(10.2F, FontStyle.Bold)
+        numDropQty.TextAlign = HorizontalAlignment.Center
+        numDropQty.Dock = DockStyle.Fill
+        numDropQty.Margin = New Padding(0, 6, 0, 0)
+        ' الكمية تُدخل الصنف بانتظارها: انتر يثبتها في الفاتورة
+        AddHandler numDropQty.KeyDown, Sub(s, e)
+                                           If e.KeyCode = Keys.Enter Then
+                                               e.SuppressKeyPress = True
+                                               CommitPendingItem()
+                                           End If
+                                       End Sub
+
+        scanBox.Controls.Add(lblQtyCaption, 0, 1)
+        scanBox.Controls.Add(numDropQty, 1, 1)
+
+        ' === عنقود الأزرار (يمين الشريط) =====================================
+        Dim opsCluster As New TableLayoutPanel With {
+            .Dock = DockStyle.Fill, .ColumnCount = 3, .RowCount = 2,
+            .RightToLeft = RightToLeft.Yes, .BackColor = Color.Transparent,
+            .Margin = New Padding(0, 2, 10, 2), .Padding = New Padding(0)
+        }
+        opsCluster.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 126.0F))
+        opsCluster.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 126.0F))
+        opsCluster.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        opsCluster.RowStyles.Add(New RowStyle(SizeType.Absolute, 31.0F))
+        opsCluster.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+
+        btnAddDrop.Text = "➕ أضف"
+        btnAddDrop.FlatStyle = FlatStyle.Flat
+        btnAddDrop.BackColor = UiTheme.BrandCyan
+        btnAddDrop.ForeColor = Color.White
+        btnAddDrop.Font = UiTheme.Font(8.4F, FontStyle.Bold)
+        btnAddDrop.Cursor = Cursors.Hand
+        btnAddDrop.FlatAppearance.BorderSize = 0
+        btnAddDrop.Dock = DockStyle.Fill
+        btnAddDrop.Margin = New Padding(0, 1, 0, 1)
+        AddHandler btnAddDrop.Click, Sub(s, e) AddSelectedDropdownItem()
+
+        cboItemDrop.DropDownWidth = 560
+        cboItemDrop.MaxDropDownItems = 16
+        cboItemDrop.DropDownStyle = ComboBoxStyle.DropDownList
+        cboItemDrop.Font = UiTheme.Font(9.4F, FontStyle.Bold)
+        cboItemDrop.RightToLeft = RightToLeft.Yes
+        cboItemDrop.DrawMode = DrawMode.OwnerDrawFixed
+        cboItemDrop.ItemHeight = 23
+        AddHandler cboItemDrop.DrawItem, AddressOf DrawDropdownItemText
+        cboItemDrop.Dock = DockStyle.Fill
+        cboItemDrop.Margin = New Padding(0, 1, 5, 1)
+        AddHandler cboItemDrop.KeyDown, Sub(s, e)
+                                            If e.KeyCode = Keys.Enter Then
+                                                e.SuppressKeyPress = True
+                                                AddSelectedDropdownItem()
+                                            ElseIf e.KeyCode = Keys.Escape Then
+                                                e.SuppressKeyPress = True
+                                                ResetDropdownTypeSearch()
+                                            End If
+                                        End Sub
+        ' الكتابة داخل القائمة نفسها تبحث: عربي أو إنجليزي أو كود أو باركود
+        AddHandler cboItemDrop.KeyPress, AddressOf DropdownTypeKeyPress
+        AddHandler cboItemDrop.Leave, Sub(s, e) ResetDropdownTypeSearch()
+        AddHandler _dropTypeSearchTimer.Tick, AddressOf RunDropdownTypeSearch
+
+        ' === خانة البحث بالاسم فوق القائمة ===================================
+        txtDropSearch.PlaceholderText = "ابحث بالاسم عربي / إنجليزي…"
+        txtDropSearch.Font = UiTheme.Font(9.8F, FontStyle.Bold)
+        txtDropSearch.TextAlign = HorizontalAlignment.Center
+        txtDropSearch.Dock = DockStyle.Fill
+        txtDropSearch.Margin = New Padding(0, 1, 5, 1)
+        AddHandler txtDropSearch.TextChanged, Sub(s, e)
+                                                  If _suppressDropFilter Then Return
+                                                  _dropBoxSearchTimer.Stop()
+                                                  _dropBoxSearchTimer.Start()
+                                              End Sub
+        AddHandler txtDropSearch.KeyDown, Sub(s, e)
+                                              If e.KeyCode = Keys.Enter Then
+                                                  e.SuppressKeyPress = True
+                                                  _dropBoxSearchTimer.Stop()
+                                                  SearchItemsByName()
+                                                  If _dropdownItems.Count > 0 Then
+                                                      If cboItemDrop.SelectedIndex < 0 Then cboItemDrop.SelectedIndex = 0
+                                                      AddSelectedDropdownItem()
+                                                  End If
+                                              ElseIf e.KeyCode = Keys.Down AndAlso _dropdownItems.Count > 0 Then
+                                                  e.SuppressKeyPress = True
+                                                  cboItemDrop.Focus()
+                                                  OpenDropdown(cboItemDrop)
+                                              End If
+                                          End Sub
+        AddHandler _dropBoxSearchTimer.Tick, AddressOf SearchItemsByName
+
+        lblQty.AutoSize = False
+        lblQty.Text = "0"
+        lblQty.RightToLeft = RightToLeft.No
+        lblQty.TextAlign = ContentAlignment.MiddleCenter
+        lblQty.BackColor = UiTheme.BrandGold
+        lblQty.ForeColor = Color.White
+        lblQty.Font = UiTheme.Font(9.4F, FontStyle.Bold)
+        lblQty.Dock = DockStyle.Fill
+        lblQty.Margin = New Padding(0, 1, 5, 1)
+
+        ' مربع اسم الصنف: حدود نظيفة وحافة بمحاذاة القائمة فوقه، والاسم يبدأ من أوله
+        lblPicked.AutoSize = False
+        lblPicked.Text = "—"
+        lblPicked.TextAlign = ContentAlignment.MiddleRight
+        lblPicked.AutoEllipsis = True
+        lblPicked.ForeColor = UiTheme.BrandNavy
+        lblPicked.BackColor = Color.White
+        lblPicked.BorderStyle = BorderStyle.FixedSingle
+        lblPicked.Font = UiTheme.Font(8.9F, FontStyle.Bold)
+        lblPicked.Padding = New Padding(8, 2, 8, 2)
+        lblPicked.Dock = DockStyle.Fill
+        lblPicked.Margin = New Padding(0, 1, 5, 1)
+
+        Dim btnManageItems As GlassButton = RailButton("📦 إدارة الأصناف", 126, True)
+        AddHandler btnManageItems.Click, Sub(s, e) OpenItemManagement()
+        Dim btnReloadItems As GlassButton = RailButton("🔄 تحديث القائمة", 126)
+        AddHandler btnReloadItems.Click, Sub(s, e) RefreshDropdownItems(txtScan.Text)
+        Dim btnInfoSide As GlassButton = RailButton("ℹ️ كارت الصنف", 126, True)
+        AddHandler btnInfoSide.Click, Sub(s, e) ShowItemCardForContext()
+
+        lblSideItemName.AutoSize = False
+        lblSideItemName.TextAlign = ContentAlignment.MiddleRight
+        lblSideItemName.AutoEllipsis = True
+        lblSideItemName.BackColor = Color.White
+        lblSideItemName.BorderStyle = BorderStyle.FixedSingle
+        lblSideItemName.ForeColor = UiTheme.BrandNavy
+        lblSideItemName.Font = UiTheme.Font(9.0F, FontStyle.Bold)
+        lblSideItemName.Text = "اختر صنفًا لعرض بياناته"
+        lblSideItemName.Dock = DockStyle.Fill
+        lblSideItemName.Padding = New Padding(8, 2, 8, 2)
+        lblSideItemName.Margin = New Padding(0, 1, 0, 1)
+
+        opsCluster.Controls.Add(btnAddDrop, 0, 0)
+        opsCluster.Controls.Add(btnInfoSide, 1, 0)
+        opsCluster.Controls.Add(btnManageItems, 0, 1)
+        opsCluster.Controls.Add(btnReloadItems, 1, 1)
+        opsCluster.Controls.Add(lblSideItemName, 2, 0)
+        opsCluster.SetRowSpan(lblSideItemName, 2)
+
+        ' === عنقود القائمة المنسدلة للبحث (يسار الشريط) =====================
+        Dim listCluster As New TableLayoutPanel With {
+            .Dock = DockStyle.Fill, .ColumnCount = 2, .RowCount = 3,
+            .RightToLeft = RightToLeft.Yes, .BackColor = Color.Transparent,
+            .Margin = New Padding(10, 2, 0, 2), .Padding = New Padding(0)
+        }
+        listCluster.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        listCluster.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 58.0F))
+        listCluster.RowStyles.Add(New RowStyle(SizeType.Absolute, 28.0F))
+        listCluster.RowStyles.Add(New RowStyle(SizeType.Absolute, 28.0F))
+        listCluster.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        listCluster.Controls.Add(txtDropSearch, 0, 0)
+        listCluster.SetColumnSpan(txtDropSearch, 2)
+        listCluster.Controls.Add(cboItemDrop, 0, 1)
+        listCluster.Controls.Add(lblQty, 1, 1)
+        listCluster.Controls.Add(lblPicked, 0, 2)
+        listCluster.SetColumnSpan(lblPicked, 2)
+
+        Dim itemsRow As New TableLayoutPanel With {
+            .Dock = DockStyle.Fill, .ColumnCount = 3, .RowCount = 1,
+            .RightToLeft = RightToLeft.Yes, .BackColor = Color.Transparent,
+            .Margin = New Padding(0), .Padding = New Padding(0)
+        }
+        itemsRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        itemsRow.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 430.0F))
+        itemsRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        itemsRow.Controls.Add(opsCluster, 0, 0)
+        itemsRow.Controls.Add(scanBox, 1, 0)
+        itemsRow.Controls.Add(listCluster, 2, 0)
 
         Dim topStack As New TableLayoutPanel With {
             .Dock = DockStyle.Top, .ColumnCount = 1, .RowCount = 2,
             .BackColor = Color.Transparent, .Margin = New Padding(0)
         }
-        topStack.RowStyles.Add(New RowStyle(SizeType.Absolute, 26))
+        topStack.RowStyles.Add(New RowStyle(SizeType.Absolute, 24))
         topStack.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         topStack.Controls.Add(title, 0, 0)
-        topStack.Controls.Add(scanHost, 0, 1)
+        topStack.Controls.Add(itemsRow, 0, 1)
         bar.Controls.Add(topStack)
 
         lblShift.AutoSize = False
@@ -584,7 +766,7 @@ Public Class SaleForm
         Return rail
     End Function
 
-    Private Function BuildRailCard(title As String) As TableLayoutPanel
+    Private Function BuildRailCard(title As String, Optional collapsible As Boolean = False) As TableLayoutPanel
         Dim card As New GlassPanel With {
             .Dock = DockStyle.Top,
             .AutoSize = True,
@@ -629,8 +811,35 @@ Public Class SaleForm
         stack.Controls.Add(head)
         card.Controls.Add(stack)
         _railStack.Controls.Add(card)
+
+        If collapsible Then
+            head.Cursor = Cursors.Hand
+            headLabel.Cursor = Cursors.Hand
+            Dim entry As New RailCardEntry With {
+                .Stack = stack, .Head = head, .HeadLabel = headLabel, .Title = title, .Open = True
+            }
+            AddHandler head.Click, Sub(s, e) ToggleRailCard(entry)
+            AddHandler headLabel.Click, Sub(s, e) ToggleRailCard(entry)
+            _collapsibleCards.Add(entry)
+        End If
+
         Return stack
     End Function
+
+    Private Sub ToggleRailCard(entry As RailCardEntry)
+        SetRailCardOpen(entry, Not entry.Open)
+    End Sub
+
+    ''' <summary>طيّ كارت الشريط الجانبي: كل ما عدا العنوان يختفي، فيبقى الكارت سطرًا واحدًا يُفتح بالضغط.</summary>
+    Private Sub SetRailCardOpen(entry As RailCardEntry, open As Boolean)
+        For Each c As Control In entry.Stack.Controls
+            If c Is entry.Head Then Continue For
+            c.Visible = open
+        Next
+        entry.Open = open
+        entry.HeadLabel.Text = If(open, "▾  " & entry.Title, "▸  " & entry.Title)
+        entry.Stack.PerformLayout()
+    End Sub
 
     Private Sub AddCardControl(stack As TableLayoutPanel, ctl As Control, Optional height As Integer = 0)
         If height > 0 Then
@@ -781,111 +990,9 @@ Public Class SaleForm
     End Function
 
     Private Sub BuildRailSections()
-        ' === 1) Item search / scan =========================================
-        Dim itemStack As TableLayoutPanel = BuildRailCard("🔍 إضافة صنف للفاتورة")
-
-        txtDropFilter.PlaceholderText = "اكتب جزءًا من الاسم أو الكود..."
-        txtDropFilter.Font = UiTheme.Font(9.4F)
-        txtDropFilter.RightToLeft = RightToLeft.Yes
-        AddHandler txtDropFilter.TextChanged, Sub(s, e)
-                                                  If _suppressDropFilter Then Return
-                                                  RefreshDropdownItems(txtDropFilter.Text)
-                                                  If cboItemDrop.Items.Count > 0 AndAlso txtDropFilter.Focused Then
-                                                      OpenDropdown(cboItemDrop)
-                                                  End If
-                                              End Sub
-        AddHandler txtDropFilter.KeyDown, Sub(s, e)
-                                               If e.KeyCode = Keys.Down AndAlso cboItemDrop.Items.Count > 0 Then
-                                                   e.SuppressKeyPress = True
-                                                   cboItemDrop.Focus()
-                                                   OpenDropdown(cboItemDrop)
-                                               ElseIf e.KeyCode = Keys.Enter Then
-                                                   e.SuppressKeyPress = True
-                                                   AddSelectedDropdownItem()
-                                               End If
-                                           End Sub
-        AddCardControl(itemStack, RailField("تصفية سريعة:", txtDropFilter), 30)
-
-        cboItemDrop.DropDownWidth = 560
-        cboItemDrop.MaxDropDownItems = 16
-        cboItemDrop.DropDownStyle = ComboBoxStyle.DropDownList
-        cboItemDrop.Font = UiTheme.Font(9.4F, FontStyle.Bold)
-        cboItemDrop.RightToLeft = RightToLeft.Yes
-        AddHandler cboItemDrop.KeyDown, Sub(s, e)
-                                            If e.KeyCode = Keys.Enter Then
-                                                e.SuppressKeyPress = True
-                                                AddSelectedDropdownItem()
-                                            End If
-                                        End Sub
-        AddCardControl(itemStack, cboItemDrop, 30)
-
-        numDropQty.Minimum = 1D
-        numDropQty.Maximum = 9999D
-        numDropQty.Value = 1D
-        numDropQty.DecimalPlaces = 0
-        numDropQty.Font = UiTheme.Font(9.5F, FontStyle.Bold)
-        numDropQty.TextAlign = HorizontalAlignment.Center
-        btnAddDrop.Text = "➕ أضف"
-        btnAddDrop.Size = New Size(96, 28)
-        btnAddDrop.FlatStyle = FlatStyle.Flat
-        btnAddDrop.BackColor = UiTheme.BrandCyan
-        btnAddDrop.ForeColor = Color.White
-        btnAddDrop.Font = UiTheme.Font(8.4F, FontStyle.Bold)
-        btnAddDrop.Cursor = Cursors.Hand
-        btnAddDrop.FlatAppearance.BorderSize = 0
-        AddHandler btnAddDrop.Click, Sub(s, e) AddSelectedDropdownItem()
-        Dim qtyRow As New TableLayoutPanel With {
-            .Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 2, .RowCount = 1,
-            .RightToLeft = RightToLeft.Yes, .BackColor = Color.White, .Margin = New Padding(0, 2, 0, 2)
-        }
-        qtyRow.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 70.0F))
-        qtyRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
-        qtyRow.Controls.Add(numDropQty, 0, 0)
-        qtyRow.Controls.Add(btnAddDrop, 1, 0)
-        numDropQty.Dock = DockStyle.Fill
-        btnAddDrop.Dock = DockStyle.Fill
-        AddCardControl(itemStack, qtyRow, 30)
-
-        ' مربع المسح انتقل لأعلى منتصف الشاشة (BuildTitleBar) ليبقى أمام الكاشير فور فتح الفاتورة
-
-        lblPicked.AutoSize = False
-        lblPicked.Height = 24
-        lblPicked.Text = "—"
-        lblPicked.TextAlign = ContentAlignment.MiddleRight
-        lblPicked.ForeColor = UiTheme.BrandNavy
-        lblPicked.BackColor = UiTheme.BrandLight
-        lblPicked.Font = UiTheme.Font(8.9F, FontStyle.Bold)
-        lblPicked.Padding = New Padding(6, 0, 6, 0)
-
-        lblQty.AutoSize = False
-        lblQty.Size = New Size(54, 24)
-        lblQty.Text = "0"
-        lblQty.RightToLeft = RightToLeft.No
-        lblQty.TextAlign = ContentAlignment.MiddleCenter
-        lblQty.BackColor = UiTheme.BrandGold
-        lblQty.ForeColor = Color.White
-        lblQty.Font = UiTheme.Font(9.4F, FontStyle.Bold)
-
-        Dim pickedRow As New TableLayoutPanel With {
-            .Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 2, .RowCount = 1,
-            .RightToLeft = RightToLeft.Yes, .BackColor = Color.White, .Margin = New Padding(0, 2, 0, 0)
-        }
-        pickedRow.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 58.0F))
-        pickedRow.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
-        pickedRow.Controls.Add(lblQty, 0, 0)
-        pickedRow.Controls.Add(lblPicked, 1, 0)
-        lblQty.Dock = DockStyle.Fill
-        lblPicked.Dock = DockStyle.Fill
-        AddCardControl(itemStack, pickedRow, 28)
-
-        Dim btnManageItems As GlassButton = RailButton("📦 إدارة الأصناف", 160, True)
-        AddHandler btnManageItems.Click, Sub(s, e) OpenItemManagement()
-        Dim btnReloadItems As GlassButton = RailButton("🔄 تحديث القائمة", 150)
-        AddHandler btnReloadItems.Click, Sub(s, e) RefreshDropdownItems(txtDropFilter.Text)
-        AddCardControl(itemStack, RailButtonRow(btnManageItems, btnReloadItems))
-
+        ' === 1) البحث/الكود/الدروب ليست/كارت الصنف انتقلت للشريط العلوي الأزرق (BuildTitleBar)
         ' === 2) Customer + loyalty =========================================
-        Dim custStack As TableLayoutPanel = BuildRailCard("👤 العميل ونقاط الولاء")
+        Dim custStack As TableLayoutPanel = BuildRailCard("👤 العميل ونقاط الولاء", collapsible:=True)
 
         txtCustomerSearch.PlaceholderText = "رقم / كود / موبايل / اسم العميل"
         txtCustomerSearch.Font = UiTheme.Font(9.4F)
@@ -967,7 +1074,7 @@ Public Class SaleForm
         AddCardControl(custStack, RailField("يكتسب (نقطة):", lblEarnedPointsPreview, True), 22)
 
         ' === 3) Coupon + voucher ===========================================
-        Dim couponStack As TableLayoutPanel = BuildRailCard("🎟️ الكوبون والقسيمة")
+        Dim couponStack As TableLayoutPanel = BuildRailCard("🎟️ الكوبون والقسيمة", collapsible:=True)
 
         txtCouponCode.Font = UiTheme.Font(9.4F)
         txtCouponCode.RightToLeft = RightToLeft.Yes
@@ -990,7 +1097,7 @@ Public Class SaleForm
         ' === 4) Seller + held invoices =====================================
         ' الدفع والخصم والإجماليات انتقلت لشريط عريض أسفل الأصناف (BuildSettlement)
         ' لأن الكاشير كان مضطر ينزلق في القائمة الجانبية عشان يشوف إجمالي الفاتورة.
-        Dim payStack As TableLayoutPanel = BuildRailCard("🧾 البائع والمعلّقات")
+        Dim payStack As TableLayoutPanel = BuildRailCard("🧾 البائع والمعلّقات", collapsible:=True)
 
         cboSeller.DropDownStyle = ComboBoxStyle.DropDownList
         cboSeller.DisplayMember = "Name"
@@ -1005,7 +1112,7 @@ Public Class SaleForm
         AddCardControl(payStack, RailField("المعلّقات:", cboHeldInvoices), 30)
 
         ' === 5) Profitability / pricing ====================================
-        Dim profitStack As TableLayoutPanel = BuildRailCard("📈 الربحية والأسعار")
+        Dim profitStack As TableLayoutPanel = BuildRailCard("📈 الربحية والأسعار", collapsible:=True)
 
         Dim btnWhole As GlassButton = RailButton("سعر جملة", 90)
         AddHandler btnWhole.Click, Sub(s, e) ApplyWholesaleToSelectedLine()
@@ -1013,18 +1120,9 @@ Public Class SaleForm
         AddHandler btnDisc5.Click, Sub(s, e) ApplyLineDiscountPct(5D)
         Dim btnDisc10 As GlassButton = RailButton("خصم 10%", 82)
         AddHandler btnDisc10.Click, Sub(s, e) ApplyLineDiscountPct(10D)
-        Dim btnInfoSide As GlassButton = RailButton("ℹ️ كارت الصنف", 118, True)
-        AddHandler btnInfoSide.Click, Sub(s, e) ShowItemCardForContext()
-        AddCardControl(profitStack, RailButtonRow(btnWhole, btnDisc5, btnDisc10, btnInfoSide))
+        AddCardControl(profitStack, RailButtonRow(btnWhole, btnDisc5, btnDisc10))
 
-        lblSideItemName.Dock = DockStyle.Top
-        lblSideItemName.Height = 30
-        lblSideItemName.TextAlign = ContentAlignment.MiddleCenter
-        lblSideItemName.BackColor = UiTheme.BrandLight
-        lblSideItemName.ForeColor = UiTheme.BrandNavy
-        lblSideItemName.Font = UiTheme.Font(9.0F, FontStyle.Bold)
-        lblSideItemName.Text = "اختر صنفًا من الفاتورة لعرض ربحيته"
-        AddCardControl(profitStack, lblSideItemName, 30)
+        ' زر «كارت الصنف» واسم الصنف المختار انتقلا للشريط العلوي الأزرق
 
         Dim summary As New TableLayoutPanel With {
             .Dock = DockStyle.Top, .AutoSize = True, .AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -1080,6 +1178,11 @@ Public Class SaleForm
         lblQuantities.ForeColor = UiTheme.Muted
         lblQuantities.Font = UiTheme.Font(8.9F, FontStyle.Bold)
         AddCardControl(notesStack, lblQuantities, 26)
+
+        ' كروت العميل والبائع تبدأ مطوية؛ الضغط على عنوانها يظهر بياناتها
+        For Each entry In _collapsibleCards
+            SetRailCardOpen(entry, False)
+        Next
     End Sub
 
     Private Shared Sub AddPaySummaryRow(stack As TableLayoutPanel, caption As String, value As Label, color As Color)
@@ -1355,21 +1458,106 @@ Public Class SaleForm
             cboItemDrop.DataSource = Nothing
             cboItemDrop.DataSource = _dropdownItems
             cboItemDrop.EndUpdate()
+            ' الكومبو المرتبط بقائمة يختار أول صنف تلقائيًا فيظهر اسمه في المربع الأبيض ثابتًا؛
+            ' نتركه فارغًا حتى يختار الكاشير بنفسه أو يمسح صنفًا.
+            cboItemDrop.SelectedIndex = -1
             SizeItemDropdown()
         Catch ex As Exception
             AppLog.Warn("Dropdown items load failed: " & ex.Message)
         End Try
     End Sub
 
-    ''' <summary>عرض القائمة المنسدلة ثابت افتراضيًا، والأسماء العربية الطويلة تُقطع في آخرها.</summary>
+    ''' <summary>
+    ''' خانة الاسم فوق القائمة: أي جزء من كلمة — عربي أو إنجليزي — يكفي لعرض الأصناف المطابقة.
+    ''' </summary>
+    Private Sub SearchItemsByName(sender As Object, e As EventArgs)
+        _dropBoxSearchTimer.Stop()
+        SearchItemsByName()
+    End Sub
+
+    Private Sub SearchItemsByName()
+        Dim term As String = txtDropSearch.Text.Trim()
+        RefreshDropdownItems(term)
+        If _dropdownItems.Count = 0 Then Return
+        cboItemDrop.SelectedIndex = 0
+        OpenDropdown(cboItemDrop)
+    End Sub
+
+    ''' <summary>
+    ''' الحروف المكتوبة فوق القائمة المنسدلة تُجمع في مخزن مؤقت؛ البحث يبدأ بعد توقف الكتابة لحظة،
+    ''' فيقبل عربي وإنجليزي وأرقام الكود والباركود من نفس القائمة.
+    ''' </summary>
+    Private Sub DropdownTypeKeyPress(sender As Object, e As KeyPressEventArgs)
+        If e.KeyChar = ControlChars.Back Then
+            If _dropTypeBuffer.Length > 0 Then _dropTypeBuffer = _dropTypeBuffer.Substring(0, _dropTypeBuffer.Length - 1)
+            ScheduleDropdownTypeSearch()
+            e.Handled = True
+            Return
+        End If
+        If Char.IsControl(e.KeyChar) Then Return
+        If Not (Char.IsLetterOrDigit(e.KeyChar) OrElse e.KeyChar = " "c OrElse e.KeyChar = "-"c) Then Return
+        _dropTypeBuffer &= e.KeyChar
+        ScheduleDropdownTypeSearch()
+        e.Handled = True
+    End Sub
+
+    Private Sub ScheduleDropdownTypeSearch()
+        _dropTypeSearchTimer.Stop()
+        _dropTypeSearchTimer.Start()
+    End Sub
+
+    Private Sub ResetDropdownTypeSearch()
+        _dropTypeSearchTimer.Stop()
+        _dropTypeBuffer = String.Empty
+    End Sub
+
+    Private Sub RunDropdownTypeSearch(sender As Object, e As EventArgs)
+        _dropTypeSearchTimer.Stop()
+        Dim term As String = _dropTypeBuffer.Trim()
+        If term.Length = 0 Then Return
+        cboItemDrop.Focus()
+        RefreshDropdownItems(term)
+        If _dropdownItems.Count > 0 Then
+            cboItemDrop.SelectedIndex = 0
+            OpenDropdown(cboItemDrop)
+        End If
+    End Sub
+
+    ''' <summary>عرض القائمة المنسدلة يُقاس بنفس اتجاه الكتابة، والأسماء الطويلة تُقطع من ذيلها فقط.</summary>
     Private Sub SizeItemDropdown()
+        Dim flags As TextFormatFlags = TextFormatFlags.RightToLeft Or TextFormatFlags.Right Or
+                                       TextFormatFlags.NoPrefix
         Dim widest As Integer = 520
         For Each it In _dropdownItems.Take(80)
-            Dim w As Integer = CInt(TextRenderer.MeasureText(it.DropdownDisplay, cboItemDrop.Font).Width) + 36
+            Dim w As Integer = CInt(TextRenderer.MeasureText(it.DropdownDisplay, cboItemDrop.Font,
+                                                             New Size(Integer.MaxValue, 40), flags).Width) + 40
             If w > widest Then widest = w
         Next
         Dim limit As Integer = Math.Max(520, Screen.FromControl(cboItemDrop).WorkingArea.Width - 80)
         cboItemDrop.DropDownWidth = Math.Min(widest, limit)
+    End Sub
+
+    ''' <summary>
+    ''' رسم سطر القائمة يدويًا: النص يبدأ من الحافة اليمنى، ولو ضاق المكان تُقطع آخره بعلامة حذف
+    ''' فتظهر بداية اسم الصنف دائمًا بدل ذيله فقط.
+    ''' </summary>
+    Private Sub DrawDropdownItemText(sender As Object, e As DrawItemEventArgs)
+        e.DrawBackground()
+        Dim text As String = String.Empty
+        If e.Index >= 0 AndAlso e.Index < cboItemDrop.Items.Count Then
+            Dim item = TryCast(cboItemDrop.Items(e.Index), ItemSummary)
+            If item IsNot Nothing Then text = item.DropdownDisplay
+        ElseIf cboItemDrop.SelectedIndex >= 0 AndAlso cboItemDrop.SelectedItem IsNot Nothing Then
+            text = cboItemDrop.SelectedItem.ToString()
+        End If
+
+        Dim isSelected As Boolean = (e.State And DrawItemState.Selected) <> DrawItemState.None
+        Dim fore As Color = If(isSelected, Color.White, UiTheme.BrandNavy)
+        Dim flags As TextFormatFlags = TextFormatFlags.RightToLeft Or TextFormatFlags.Right Or
+                                       TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis Or
+                                       TextFormatFlags.NoPrefix
+        TextRenderer.DrawText(e.Graphics, text, cboItemDrop.Font, e.Bounds, fore, flags)
+        e.DrawFocusRectangle()
     End Sub
 
     ''' <summary>فتح القائمة المنسدلة برمجياً يُخفي مؤشر الماوس حتى تنتهي الرسالة؛ نعيد المؤشر بعد ذلك.</summary>
@@ -1393,6 +1581,11 @@ Public Class SaleForm
     End Sub
 
     Private Sub AddSelectedDropdownItem()
+        If _pendingItem IsNot Nothing Then
+            CommitPendingItem()
+            Return
+        End If
+
         Dim selected = TryCast(cboItemDrop.SelectedItem, ItemSummary)
         If selected Is Nothing AndAlso _dropdownItems.Count > 0 Then
             selected = _dropdownItems(0)
@@ -1418,9 +1611,8 @@ Public Class SaleForm
         lblQty.Text = qtyToAdd.ToString("0.##")
         numDropQty.Value = 1D
 
-        _suppressDropFilter = True
-        txtDropFilter.Clear()
-        _suppressDropFilter = False
+        ClearScanField()
+        txtScan.Focus()
 
         UpdateSelectedItem()
         UpdateQuantities()
@@ -1563,52 +1755,98 @@ Public Class SaleForm
         LoadLookups()
     End Sub
 
+    ''' <summary>البحث يتم عند Enter فقط: نداء مباشر بالكود أو الباركود، وإن يطابق رقم واحد صنفًا واحدًا
+    ''' يُضاف فورًا. القائمة المنسدلة لا تظهر من هذه المسار إطلاقًا.</summary>
     Private Sub AddByScan()
         Dim term As String = txtScan.Text.Trim()
         If term.Length = 0 Then
-            cboItemDrop.Focus()
-            OpenDropdown(cboItemDrop)
+            txtScan.Focus()
             Return
         End If
         Try
             Dim item = ItemService.FindForSale(_session, term)
-            If item Is Nothing Then
-                Dim matches = ItemService.Search(_session, term, False, 50)
-                If matches.Count = 1 Then
-                    AddPicked(matches(0))
-                ElseIf matches.Count > 1 Then
-                    _dropdownItems = matches
-                    cboItemDrop.DataSource = _dropdownItems
-                    SizeItemDropdown()
-                    cboItemDrop.Focus()
-                    OpenDropdown(cboItemDrop)
-                Else
-                    UiTheme.Warn("لم يتم العثور على صنف بالكود أو الباركود: " & term)
-                End If
-            Else
+            If item IsNot Nothing Then
                 If Not item.IsActive Then
                     UiTheme.Warn("الصنف «" & item.NameAr & "» غير مفعّل.")
                     Return
                 End If
-                AddPicked(item)
+                StagePickedItem(item)
+                Return
+            End If
+
+            Dim matches = ItemService.Search(_session, term, False, 50)
+            If matches.Count = 1 Then
+                StagePickedItem(matches(0))
+            ElseIf matches.Count > 1 Then
+                UiTheme.Warn("هذا الرقم يطابق " & matches.Count & " أصناف — اكتب الكود الكامل أو الباركود.")
+            Else
+                UiTheme.Warn("لم يتم العثور على صنف بالكود أو الباركود: " & term)
             End If
         Catch ex As Exception
             UiTheme.Handle(ex)
         End Try
     End Sub
 
-    Private Sub AddPicked(item As ItemSummary)
-        _editor.AddItem(item)
+    ''' <summary>بعض القارئآت تُرسل الباركود كاملًا بلا Enter: رقم 12 خانة أو أكثر يطابق باركودًا
+    ''' معروفًا يُضاف مباشرة، بلا بحث جزئي وبلا ظهور القائمة.</summary>
+    Private Sub AddScannedBarcode()
+        Dim term As String = txtScan.Text.Trim()
+        If term.Length < 12 Then Return
+        For Each ch As Char In term
+            If Not Char.IsDigit(ch) Then Return
+        Next
+        Try
+            Dim item = ItemService.FindForSale(_session, term)
+            If item Is Nothing Then Return
+            If Not item.IsActive Then
+                UiTheme.Warn("الصنف «" & item.NameAr & "» غير مفعّل.")
+                ClearScanField()
+                Return
+            End If
+            StagePickedItem(item)
+        Catch ex As Exception
+            AppLog.Warn("Scanner lookup failed: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>بعد السكان لا يُضاف الصنف مباشرة: يقف في انتظار الكمية، والخانة التالية هي الكمية،
+    ''' والضغط على Enter هناك يُدخل الصنف إلى الفاتورة.</summary>
+    Private Sub StagePickedItem(item As ItemSummary)
+        _pendingItem = item
+        lblPicked.Text = item.NameAr
+        lblSideItemName.Text = item.NameAr & " [" & item.Code & "] — الكمية؟"
+        ClearScanField()
+        numDropQty.Value = 1D
+        numDropQty.Focus()
+        numDropQty.Select(0, 10)
+    End Sub
+
+    ''' <summary>تفريغ الصنف المعلّق وإدخاله بالفاتورة بالكمية المكتوبة في خانة الكمية.</summary>
+    Private Sub CommitPendingItem()
+        Dim item = _pendingItem
+        If item Is Nothing Then Return
+        _pendingItem = Nothing
+
+        Dim qty As Decimal = numDropQty.Value
+        If qty <= 0D Then qty = 1D
+
+        _editor.AddItem(item, qty)
         Dim grid = _editor.GridControl
         If grid.Rows.Count > 0 Then
             grid.CurrentCell = grid.Rows(grid.Rows.Count - 1).Cells(0)
         End If
-        lblPicked.Text = item.NameAr
-        lblQty.Text = "1"
-        txtScan.Clear()
+        lblQty.Text = qty.ToString("0.##")
+        numDropQty.Value = 1D
         txtScan.Focus()
         UpdateSelectedItem()
         UpdateQuantities()
+    End Sub
+
+    ''' <summary>تفريغ خانة الكود برمجيًا دون إعادة تصفية القائمة، فالمسح ليس كتابة من الكاشير.</summary>
+    Private Sub ClearScanField()
+        _suppressDropFilter = True
+        txtScan.Clear()
+        _suppressDropFilter = False
     End Sub
 
     ''' <summary>تحديث اللوحة الجانبية بسعر الشراء وسعر البيع وربحية الصنف ونسبة خصم الصنف لحظيًا.</summary>
@@ -1688,7 +1926,7 @@ Public Class SaleForm
             f.ShowDialog(Me)
         End Using
         LoadLookups()
-        RefreshDropdownItems(txtDropFilter.Text)
+        RefreshDropdownItems(txtScan.Text)
     End Sub
 
     ''' <summary>كارت الصنف يعمل على السطر المحدد، أو على الصنف المختار في القائمة/المسح قبل إضافته للفاتورة.</summary>
@@ -1696,6 +1934,11 @@ Public Class SaleForm
         Dim line = SelectedLine()
         If line IsNot Nothing Then
             ShowItemFullCard(line)
+            Return
+        End If
+
+        If _pendingItem IsNot Nothing Then
+            ShowItemFullCard(LineFromSummary(_pendingItem))
             Return
         End If
 
@@ -2061,7 +2304,7 @@ Public Class SaleForm
                 dialog.ShowDialog(Me)
             End Using
             ResetInvoice(False)
-            RefreshDropdownItems(txtDropFilter.Text)
+            RefreshDropdownItems(txtScan.Text)
             RefreshCustomerExtras()
             RefreshShift()
         Catch ex As Exception
@@ -2085,6 +2328,7 @@ Public Class SaleForm
            Not UiTheme.Confirm("بدء فاتورة جديدة وإفراغ البنود الحالية؟") Then Return
         _editor.Clear()
         _editor.HeaderDiscount = 0D
+        _pendingItem = Nothing
         _draftEventId = Uuid7.NewId()
         _couponPreviewDiscount = 0D
         _loyaltyPreviewDiscount = 0D
@@ -2098,7 +2342,7 @@ Public Class SaleForm
         txtVoucherAmount.Text = "0.00"
         txtNotes.Clear()
         txtPaid.Clear()
-        txtScan.Clear()
+        ClearScanField()
         _paidTouched = False
         _keypadBuffer = String.Empty
         lblPicked.Text = "—"
@@ -2241,12 +2485,14 @@ Public Class SaleForm
                 txtScan.SelectAll()
             Case Keys.F3
                 e.SuppressKeyPress = True
-                txtDropFilter.Focus()
-                txtDropFilter.SelectAll()
+                txtScan.Focus()
+                txtScan.SelectAll()
+                RefreshDropdownItems(txtScan.Text)
                 If cboItemDrop.Items.Count > 0 Then OpenDropdown(cboItemDrop)
             Case Keys.F4
                 e.SuppressKeyPress = True
-                cboItemDrop.Focus()
+                txtDropSearch.Focus()
+                SearchItemsByName()
                 If cboItemDrop.Items.Count > 0 Then OpenDropdown(cboItemDrop)
             Case Keys.F5
                 e.SuppressKeyPress = True
@@ -2270,7 +2516,16 @@ Public Class SaleForm
                 e.SuppressKeyPress = True
                 HoldInvoice()
             Case Keys.F9, Keys.Enter
-                If e.KeyCode = Keys.Enter AndAlso ActiveControl Is txtScan Then Return
+                If e.KeyCode = Keys.Enter AndAlso
+                   (ActiveControl Is txtScan OrElse ActiveControl Is cboItemDrop OrElse
+                    ActiveControl Is numDropQty OrElse ActiveControl Is txtDropSearch) Then
+                    Return
+                End If
+                If e.KeyCode = Keys.Enter AndAlso _pendingItem IsNot Nothing Then
+                    e.SuppressKeyPress = True
+                    CommitPendingItem()
+                    Return
+                End If
                 e.SuppressKeyPress = True
                 PostSale()
             Case Keys.F10
@@ -2306,6 +2561,15 @@ Public Class SaleForm
         ' after the cards finish auto-sizing; cashiers need the scan box first.
         _railNeedsTopPin = True
         _railScroll.ScrollControlIntoView(_railStack)
+    End Sub
+
+    Protected Overrides Sub OnFormClosed(e As FormClosedEventArgs)
+        ' A pending 260ms search debounce may outlive the window and fire on disposed controls.
+        _dropTypeSearchTimer.Stop()
+        _dropTypeSearchTimer.Dispose()
+        _dropBoxSearchTimer.Stop()
+        _dropBoxSearchTimer.Dispose()
+        MyBase.OnFormClosed(e)
     End Sub
 End Class
 
@@ -2904,4 +3168,13 @@ Friend Class LookupItem
     Public Overrides Function ToString() As String
         Return Name
     End Function
+End Class
+
+''' <summary>كارت في الشريط الجانبي يمكن طيّ محتواه والضغط على عنوانه فقط.</summary>
+Friend Class RailCardEntry
+    Public Property Stack As TableLayoutPanel
+    Public Property Head As Control
+    Public Property HeadLabel As Label
+    Public Property Title As String
+    Public Property Open As Boolean
 End Class

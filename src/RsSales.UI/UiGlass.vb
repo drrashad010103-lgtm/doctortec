@@ -101,6 +101,14 @@ Public Class GlassButton
         End If
     End Sub
 
+    Protected Overrides Sub Dispose(disposing As Boolean)
+        If disposing Then
+            _animTimer.Stop()
+            _animTimer.Dispose()
+        End If
+        MyBase.Dispose(disposing)
+    End Sub
+
     Protected Overrides Sub OnResize(e As EventArgs)
         MyBase.OnResize(e)
         If Width > 0 AndAlso Height > 0 Then

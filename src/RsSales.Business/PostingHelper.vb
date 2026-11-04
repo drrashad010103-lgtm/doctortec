@@ -34,9 +34,17 @@ Friend NotInheritable Class PostingHelper
                name.IndexOf("cash", StringComparison.OrdinalIgnoreCase) >= 0
     End Function
 
+    ''' <summary>Name of an active payment method, or Nothing when it is missing or stopped.</summary>
+    Friend Shared Function MethodName(conn As IDbConnection, methodId As Long, tx As IDbTransaction) As String
+        If methodId <= 0 Then Return Nothing
+        Return conn.ExecuteScalar(Of String)(
+            "SELECT name FROM payment_methods WHERE id=@id AND is_active=1", New With {.id = methodId}, tx)
+    End Function
+
     ''' <summary>
-    ''' Rejects a shift that belongs to another branch: its drawer and cash moves
-    ''' must never be posted from the wrong branch.
+    ''' Rejects a shift that belongs to another branch or is already closed: its
+    ''' drawer and cash moves must never grow from the wrong branch or after the
+    ''' till has been counted and shut.
     ''' </summary>
     Friend Shared Sub EnsureShiftInBranch(conn As IDbConnection, tx As IDbTransaction,
                                           shiftId As Long?, branchId As Long)
@@ -46,6 +54,11 @@ Friend NotInheritable Class PostingHelper
         If owner Is Nothing OrElse IsDBNull(owner) Then Throw New BusinessException("الوردية غير موجودة.")
         If CLng(owner) <> branchId Then
             Throw New BusinessException("الوردية تخص فرعًا آخر ولا يمكن استخدامها من هذا الفرع.")
+        End If
+        Dim status As String = conn.ExecuteScalar(Of String)(
+            "SELECT status FROM shifts WHERE id=@id", New With {.id = shiftId.Value}, tx)
+        If status <> "open" Then
+            Throw New BusinessException("الوردية مغلقة. افتح وردية جديدة قبل ترحيل هذه العملية.")
         End If
     End Sub
 

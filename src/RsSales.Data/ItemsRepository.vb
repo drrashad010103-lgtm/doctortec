@@ -38,7 +38,34 @@ Public NotInheritable Class ItemsRepository
     Public Shared Function Search(conn As IDbConnection, term As String, Optional limit As Integer = 50,
                                   Optional includeInactive As Boolean = False,
                                   Optional tx As IDbTransaction = Nothing) As List(Of ItemSummary)
-        Dim likeTerm As String = "%" & If(term, String.Empty).Trim() & "%"
+        Dim t As String = If(term, String.Empty).Trim()
+        If IsDigitsOnly(t) Then
+            ' أرقام = كود أو باركود: المطابق تمامًا أولًا ثم الذي يبدأ بها.
+            ' قبل كده كان «5445» يلتقط أي باركود فيه الأرقام الأربعة في أي موضع.
+            Dim exact = SearchBy(conn, t, "exact", limit, includeInactive, tx)
+            If exact.Count > 0 Then Return exact
+            Return SearchBy(conn, t, "prefix", limit, includeInactive, tx)
+        End If
+        Return SearchBy(conn, t, "contains", limit, includeInactive, tx)
+    End Function
+
+    ''' <summary>هل النص أرقام فقط؟ البحث الرقمي بالكود غير البحث بالحروف.</summary>
+    Private Shared Function IsDigitsOnly(value As String) As Boolean
+        If value.Length = 0 Then Return False
+        For Each c As Char In value
+            If c < "0"c OrElse c > "9"c Then Return False
+        Next
+        Return True
+    End Function
+
+    Private Shared Function SearchBy(conn As IDbConnection, term As String, mode As String,
+                                     limit As Integer, includeInactive As Boolean,
+                                     tx As IDbTransaction) As List(Of ItemSummary)
+        Dim likeTerm As String = If(mode = "prefix", term & "%", "%" & term & "%")
+        Dim codeMatch As String = If(mode = "exact", "i.code=@term", "i.code LIKE @like")
+        Dim barMatch As String = If(mode = "exact", "b2.barcode=@term", "b2.barcode LIKE @like")
+        Dim nameMatch As String = If(mode = "contains",
+            " OR i.name_ar LIKE @like OR i.name_en LIKE @like", String.Empty)
         Dim sql As String =
             "SELECT i.id, i.code, i.name_ar, i.name_en, i.sale_price, i.cost_price, " &
             "       i.wholesale_price, i.min_price, " &
@@ -46,13 +73,13 @@ Public NotInheritable Class ItemsRepository
             "       COALESCE((SELECT b.barcode FROM item_barcodes b WHERE b.item_id=i.id ORDER BY b.is_primary DESC, b.id LIMIT 1),'') AS barcode, " &
             "       i.reorder_level, i.is_active " &
             "FROM items i LEFT JOIN tax_categories t ON t.id=i.tax_category_id " &
-            "WHERE (@term='' OR i.code LIKE @like OR i.name_ar LIKE @like OR i.name_en LIKE @like " &
-            "       OR EXISTS (SELECT 1 FROM item_barcodes b2 WHERE b2.item_id=i.id AND b2.barcode LIKE @like)) "
+            "WHERE (@term='' OR " & codeMatch & nameMatch &
+            "       OR EXISTS (SELECT 1 FROM item_barcodes b2 WHERE b2.item_id=i.id AND " & barMatch & ")) "
         If Not includeInactive Then sql &= " AND i.is_active=1 "
-        sql &= "ORDER BY i.name_ar LIMIT @limit"
+        sql &= "ORDER BY i.name_ar, i.id LIMIT @limit"
 
         Return conn.Query(Of ItemSummary)(sql,
-            New With {.term = If(term, String.Empty).Trim(), .like = likeTerm, .limit = limit}, tx).AsList()
+            New With {.term = term, .like = likeTerm, .limit = limit}, tx).AsList()
     End Function
 
     Public Shared Function Insert(conn As IDbConnection, tx As IDbTransaction,

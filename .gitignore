@@ -40,3 +40,6 @@ RsSales_latest.slnx
 
 # cost backups written by apply-cost-margin
 cost_backup_*.csv
+
+# code backups written by renumber-codes
+codes_backup_*.csv

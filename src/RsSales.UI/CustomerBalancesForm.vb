@@ -27,6 +27,10 @@ Public Class CustomerBalancesForm
 
         AddRefresh(AddressOf Reload)
 
+        Dim btnCollect As Button = UiTheme.MakeButton("تحصيل آجل", 110)
+        AddHandler btnCollect.Click, AddressOf CollectClicked
+        ToolBar.Controls.Add(btnCollect)
+
         Dim btnExport As Button = UiTheme.MakeButton("تصدير CSV", 110)
         AddHandler btnExport.Click, Sub(s, e) ExportCsv("customer-balances-" & Date.Now.ToString("yyyyMMdd") & ".csv")
         ToolBar.Controls.Add(btnExport)
@@ -54,6 +58,17 @@ Public Class CustomerBalancesForm
             End Select
         End Get
     End Property
+
+    Private Sub CollectClicked(sender As Object, e As EventArgs)
+        Dim customerId As Long = 0L
+        If Grid.CurrentRow IsNot Nothing Then
+            Dim row = TryCast(Grid.CurrentRow.DataBoundItem, CustomerBalanceSummary)
+            If row IsNot Nothing Then customerId = row.Id
+        End If
+        Using dlg As New CustomerCollectionForm(Session, customerId)
+            If dlg.ShowDialog(Me) = DialogResult.OK Then Reload()
+        End Using
+    End Sub
 
     Protected Overrides Sub LoadData()
         _rows = CustomerFinanceService.Balances(Session, SearchText, FilterKey)

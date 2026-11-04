@@ -397,7 +397,8 @@ Public NotInheritable Class InventoryCountService
                 If delta = 0D Then Continue For
 
                 StockRepository.AddMove(db.Connection, tx, Uuid7.NewId(), session.BranchId, line.ItemId,
-                                        "count_adjust", delta, cost, "inventory_count", countId, line.Id,
+                                        If(delta > 0D, "count_gain", "count_loss"), delta, cost,
+                                        "inventory_count", countId, line.Id,
                                         occurredAt, businessDate, session.UserId, session.DeviceId,
                                         "تسوية جرد " & header.CountNo, delta > 0D)
 

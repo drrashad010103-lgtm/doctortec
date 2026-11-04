@@ -178,6 +178,22 @@ Public NotInheritable Class CustomerFinanceRepository
                       .term = If(term, String.Empty).Trim(), .like = likeTerm, .limit = limit}, tx).AsList()
     End Function
 
+    ''' <summary>
+    ''' Unpaid invoices of one party, oldest first — the order تحصيل is allocated against them.
+    ''' Not filtered by branch because the customer balance the credit ceiling is checked
+    ''' against is the sum of this party's due on every branch.
+    ''' </summary>
+    Public Shared Function OutstandingInvoices(conn As IDbConnection, customerId As Long,
+                                               Optional lockForUpdate As Boolean = False,
+                                               Optional tx As IDbTransaction = Nothing) As List(Of CustomerDueInvoice)
+        Dim sql As String =
+            "SELECT id AS invoice_id, invoice_no, business_date, total, paid, due FROM invoices " &
+            "WHERE customer_id=@id AND status='posted' AND due > 0.004 " &
+            "ORDER BY business_date, id"
+        If lockForUpdate Then sql &= " FOR UPDATE"
+        Return conn.Query(Of CustomerDueInvoice)(sql, New With {.id = customerId}, tx).AsList()
+    End Function
+
     ''' <summary>Identity line used to head a statement (Nothing when the party does not exist).</summary>
     Public Shared Function PartyHeader(conn As IDbConnection, customerId As Long,
                                        Optional tx As IDbTransaction = Nothing) As PartyStatement

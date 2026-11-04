@@ -30,6 +30,8 @@ Public Class LoginForm
     Private ReadOnly _config As AppConfig
     Private _session As AppSession
     Private _branchesLoading As Boolean
+    ''' <summary>لغة الكيبورد التي كان عليها الجهاز قبل الدخول؛ تُعاد عند إغلاق شاشة الدخول.</summary>
+    Private _savedInputLanguage As InputLanguage
 
     <System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)>
     Public ReadOnly Property Session As AppSession
@@ -295,6 +297,7 @@ Public Class LoginForm
         txtUser.TextAlign = HorizontalAlignment.Right
         txtUser.Dock = DockStyle.Fill
         txtUser.Margin = New Padding(0, 2, 0, 6)
+        AddHandler txtUser.GotFocus, AddressOf ForceEnglishInput
 
         txtPassword.Font = UiTheme.Font(12.0F, FontStyle.Bold)
         txtPassword.UseSystemPasswordChar = True
@@ -303,6 +306,7 @@ Public Class LoginForm
         txtPassword.TextAlign = HorizontalAlignment.Right
         txtPassword.Dock = DockStyle.Fill
         txtPassword.Margin = New Padding(0, 2, 0, 6)
+        AddHandler txtPassword.GotFocus, AddressOf ForceEnglishInput
 
         cboBranch.DropDownStyle = ComboBoxStyle.DropDownList
         cboBranch.Font = UiTheme.Font(11.0F, FontStyle.Bold)
@@ -425,6 +429,40 @@ Public Class LoginForm
     Protected Overrides Sub OnLoad(e As EventArgs)
         MyBase.OnLoad(e)
         BeginInvoke(New Action(Sub() LoadBranches()))
+    End Sub
+
+    ''' <summary>
+    ''' بيانات الدخول لاتينية، فيتم تحويل الكيبورد للإنجليزي تلقائيًا عند الكتابة حتى لا يُكتب
+    ''' اسم المستخدم أو كلمة المرور بحروف عربية. اللغة الأصلية تعود بعد إغلاق الشاشة
+    ''' ليتمكن الكاشير من كتابة أسماء الأصناف بالعربي.
+    ''' </summary>
+    Private Sub ForceEnglishInput(sender As Object, e As EventArgs)
+        If _savedInputLanguage Is Nothing Then _savedInputLanguage = InputLanguage.CurrentInputLanguage
+        Dim english = EnglishInputLanguage()
+        If english IsNot Nothing AndAlso english IsNot InputLanguage.CurrentInputLanguage Then
+            InputLanguage.CurrentInputLanguage = english
+        End If
+    End Sub
+
+    Private Shared Function EnglishInputLanguage() As InputLanguage
+        For Each installed As Object In InputLanguage.InstalledInputLanguages
+            Dim lang = TryCast(installed, InputLanguage)
+            If lang IsNot Nothing AndAlso lang.Culture.TwoLetterISOLanguageName = "en" Then Return lang
+        Next
+        Return Nothing
+    End Function
+
+    Protected Overrides Sub OnFormClosed(e As FormClosedEventArgs)
+        _clockTimer.Stop()
+        _clockTimer.Dispose()
+        If _savedInputLanguage IsNot Nothing Then InputLanguage.CurrentInputLanguage = _savedInputLanguage
+        MyBase.OnFormClosed(e)
+    End Sub
+
+    ''' <summary>أول ما تظهر الشاشة تكون إنجليزي، فلا يحتاج الكاشير لتبديل اللغة قبل كتابة اليوزر.</summary>
+    Protected Overrides Sub OnShown(e As EventArgs)
+        MyBase.OnShown(e)
+        ForceEnglishInput(Nothing, EventArgs.Empty)
     End Sub
 
     ''' <summary>

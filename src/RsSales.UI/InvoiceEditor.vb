@@ -136,6 +136,9 @@ Public Class InvoiceEditor
         End Get
     End Property
 
+    ''' <summary>سقف خصم البند الواحد في فاتورة البيع: 20% من إجمالي البند، نسبة كانت أو قيمة.</summary>
+    Private Const MaxSaleDiscountPct As Decimal = 20D
+
     Private Sub BuildUi()
         With _toolbar
             .Dock = DockStyle.Top
@@ -171,11 +174,14 @@ Public Class InvoiceEditor
 
         _binding.DataSource = _lines
         _grid.DataSource = _binding
+        _grid.ReadOnly = False
         _grid.EditMode = DataGridViewEditMode.EditOnEnter
         _grid.AllowUserToOrderColumns = False
 
-        UiTheme.AddTextColumn(_grid, "Code", "الكود", 85)
-        UiTheme.AddTextColumn(_grid, "ItemName", "الصنف", 230, True)
+        Dim codeColumn = UiTheme.AddTextColumn(_grid, "Code", "الكود", 85)
+        codeColumn.ReadOnly = True
+        Dim nameColumn = UiTheme.AddTextColumn(_grid, "ItemName", "الصنف", 230, True)
+        nameColumn.ReadOnly = True
 
         ' زر تفاصيل وتعليمات وإكسبير الصنف بجوار اسم الصنف مباشرة
         Dim infoBtnCol As New DataGridViewButtonColumn With {
@@ -183,6 +189,7 @@ Public Class InvoiceEditor
             .DataPropertyName = "InfoButtonText",
             .HeaderText = "بطاقة الصنف",
             .Width = 92,
+            .ReadOnly = True,
             .FlatStyle = FlatStyle.Popup,
             .UseColumnTextForButtonValue = False
         }
@@ -191,11 +198,13 @@ Public Class InvoiceEditor
         infoBtnCol.DefaultCellStyle.Font = New Font("Cairo", 8.5F, FontStyle.Bold)
         _grid.Columns.Add(infoBtnCol)
 
+        ' الكمية والخصم فقط قابلان للتعديل في فاتورة البيع، والسعر من سعر الصنف نفسه
         Dim qtyColumn = UiTheme.AddTextColumn(_grid, "Qty", "الكمية", 75, False, "N2")
         qtyColumn.ReadOnly = False
         Dim priceColumn = UiTheme.AddTextColumn(_grid, "UnitPrice", If(IsPurchase, "سعر الشراء", "سعر البيع"), 95, False, "N2")
-        priceColumn.ReadOnly = False
-        Dim discountPctCol = UiTheme.AddTextColumn(_grid, "DiscountPct", "خصم %", 70, False, "N2")
+        priceColumn.ReadOnly = Not IsPurchase
+        If Not IsPurchase Then priceColumn.DefaultCellStyle.BackColor = Color.FromArgb(243, 246, 250)
+        Dim discountPctCol = UiTheme.AddTextColumn(_grid, "DiscountPct", "خصم % (حتى 20)", 96, False, "N2")
         discountPctCol.ReadOnly = False
         Dim discountColumn = UiTheme.AddTextColumn(_grid, "Discount", "قيمة الخصم", 85, False, "N2")
         discountColumn.ReadOnly = False
@@ -205,10 +214,22 @@ Public Class InvoiceEditor
             Dim expiryColumn = UiTheme.AddTextColumn(_grid, "ExpiryDate", "الصلاحية", 100, False, "yyyy-MM-dd")
             expiryColumn.ReadOnly = False
         End If
-        UiTheme.AddTextColumn(_grid, "TaxText", "الضريبة", 80)
-        UiTheme.AddTextColumn(_grid, "DisplayTotal", "الإجمالي", 105, False, "N2")
+        Dim taxColumn = UiTheme.AddTextColumn(_grid, "TaxText", "الضريبة", 80)
+        taxColumn.ReadOnly = True
+        Dim totalColumn = UiTheme.AddTextColumn(_grid, "DisplayTotal", "الإجمالي", 105, False, "N2")
+        totalColumn.ReadOnly = True
 
         AddHandler _grid.CellEndEdit, AddressOf CellEndEdit
+        AddHandler _grid.CellClick, Sub(s, e)
+                                        ' الدوس على اسم الصنف ينقل مباشرة لخانة الكمية ويجهزها للكتابة
+                                        If e.RowIndex < 0 OrElse e.ColumnIndex < 0 Then Return
+                                        Dim clicked As String = _grid.Columns(e.ColumnIndex).DataPropertyName
+                                        If clicked <> "ItemName" AndAlso clicked <> "Code" Then Return
+                                        _grid.CurrentCell = _grid.Rows(e.RowIndex).Cells("Qty")
+                                        If Not _grid.IsCurrentCellInEditMode Then _grid.BeginEdit(True)
+                                        Dim editBox = TryCast(_grid.EditingControl, TextBox)
+                                        If editBox IsNot Nothing Then editBox.SelectAll()
+                                    End Sub
         AddHandler _grid.KeyDown, Sub(s, e)
                                       If e.KeyCode = Keys.F11 OrElse (e.KeyCode = Keys.Delete AndAlso Not _grid.IsCurrentCellInEditMode) Then
                                           e.SuppressKeyPress = True
@@ -394,11 +415,22 @@ Public Class InvoiceEditor
                                    _grid.Columns(e.ColumnIndex).DataPropertyName, String.Empty)
 
         If colName = "DiscountPct" Then
-            line.DiscountPct = Math.Max(0D, Math.Min(100D, Money.Round2(line.DiscountPct)))
+            line.DiscountPct = Math.Max(0D, Money.Round2(line.DiscountPct))
+            If Not IsPurchase AndAlso line.DiscountPct > MaxSaleDiscountPct Then
+                line.DiscountPct = MaxSaleDiscountPct
+                UiTheme.Warn("خصم البند لا يتجاوز " & MaxSaleDiscountPct.ToString("0") & "% من قيمة البند.")
+            End If
             line.Discount = Money.Round2(gross * (line.DiscountPct / 100D))
         Else
             line.Discount = Math.Max(0D, Money.Round2(line.Discount))
-            If line.Discount > gross Then line.Discount = gross
+            Dim cap As Decimal = If(IsPurchase, gross, Money.Round2(gross * (MaxSaleDiscountPct / 100D)))
+            If line.Discount > cap Then
+                If Not IsPurchase AndAlso cap > 0D Then
+                    UiTheme.Warn("خصم البند لا يتجاوز " & MaxSaleDiscountPct.ToString("0") &
+                                 "% — الأقصى المسموح " & UiTheme.Money(cap) & ".")
+                End If
+                line.Discount = cap
+            End If
             line.DiscountPct = If(gross > 0D, Money.Round2((line.Discount / gross) * 100D), 0D)
         End If
 
@@ -412,7 +444,8 @@ Public Class InvoiceEditor
             Dim requestLines As New List(Of InvoiceLineInput)()
             For Each line In _lines
                 Dim gross As Decimal = Money.Round2(line.Qty * line.UnitPrice)
-                If line.Discount > gross Then line.Discount = gross
+                Dim cap As Decimal = If(IsPurchase, gross, Money.Round2(gross * (MaxSaleDiscountPct / 100D)))
+                If line.Discount > cap Then line.Discount = cap
                 line.DiscountPct = If(gross > 0D, Money.Round2((line.Discount / gross) * 100D), 0D)
 
                 requestLines.Add(New InvoiceLineInput With {

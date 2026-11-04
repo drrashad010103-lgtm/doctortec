@@ -1,5 +1,6 @@
 Imports System
 Imports System.Collections.Generic
+Imports System.Linq
 
 ''' <summary>Customer groups used to classify customers and drive group discounts.</summary>
 Public NotInheritable Class CustomerGroupService
@@ -166,6 +167,130 @@ Public NotInheritable Class CustomerFinanceService
                 row.Balance = running
                 result.Lines.Add(row)
             Next
+            Return result
+        End Using
+    End Function
+End Class
+
+''' <summary>
+''' تحصيل الآجل: money the customer hands over against their unpaid invoices. Each
+''' payment settles the invoice it is allocated to, so the customer's balance — and
+''' therefore the credit ceiling a later sale is checked against — goes down.
+''' </summary>
+Public NotInheritable Class CustomerCollectionService
+    Private Sub New()
+    End Sub
+
+    Public Shared Function Outstanding(session As AppSession, customerId As Long) As List(Of CustomerDueInvoice)
+        Using db = DbSession.Open(session.ConnectionString)
+            Return CustomerFinanceRepository.OutstandingInvoices(db.Connection, customerId)
+        End Using
+    End Function
+
+    ''' <summary>Settles <paramref name="amount"/> against one invoice when <paramref name="invoiceId"/>
+    ''' is given, otherwise against the oldest unpaid invoices first.</summary>
+    Public Shared Function Collect(session As AppSession, customerId As Long, amount As Decimal,
+                                   methodId As Long, invoiceId As Long?, note As String) As CustomerCollectionResult
+        session.RequirePermission("customers.manage")
+        If customerId <= 0 Then Throw New BusinessException("اختر العميل أولاً.")
+        Dim wanted As Decimal = Money.Round2(amount)
+        If wanted <= 0D Then Throw New BusinessException("مبلغ التحصيل يجب أن يكون أكبر من صفر.")
+
+        Dim reference As String = If(note, String.Empty).Trim()
+        If reference.Length > 128 Then reference = reference.Substring(0, 128)
+
+        Using db = DbSession.Open(session.ConnectionString)
+            db.BeginTransaction()
+            Dim tx = db.Transaction
+            Dim c = db.Connection
+
+            Dim party = CustomerFinanceRepository.PartyHeader(c, customerId, tx)
+            If party Is Nothing Then Throw New BusinessException("العميل غير موجود.")
+
+            Dim methodName As String = PostingHelper.MethodName(c, methodId, tx)
+            If String.IsNullOrWhiteSpace(methodName) Then
+                Throw New BusinessException("طريقة الدفع غير صالحة أو موقوفة.")
+            End If
+
+            Dim unpaid = CustomerFinanceRepository.OutstandingInvoices(c, customerId, True, tx)
+            If unpaid.Count = 0 Then
+                Throw New BusinessException("لا توجد فواتير غير مسددة على العميل «" & party.PartyName & "».")
+            End If
+
+            Dim targets As List(Of CustomerDueInvoice) = unpaid
+            If invoiceId.HasValue Then
+                targets = unpaid.Where(Function(row) row.InvoiceId = invoiceId.Value).ToList()
+                If targets.Count = 0 Then
+                    Throw New BusinessException("الفاتورة المختارة مسددة بالفعل أو لا تخص هذا العميل.")
+                End If
+            End If
+
+            Dim allDue As Decimal = Money.Round2(unpaid.Sum(Function(row) row.Due))
+            Dim available As Decimal = Money.Round2(targets.Sum(Function(row) row.Due))
+            If wanted > available Then
+                Throw New BusinessException("المبلغ أكبر من المتبقي (" & available.ToString("0.##") &
+                                            "). المتبقي على العميل كله " & allDue.ToString("0.##") & ".")
+            End If
+
+            Dim occurredAt As Date = Date.UtcNow
+            Dim businessDate As Date = PostingHelper.LocalBusinessDate(session, occurredAt)
+
+            ' ---- settle the invoices --------------------------------------
+            Dim left As Decimal = wanted
+            Dim settledCount As Integer = 0
+            For Each row In targets
+                If left <= 0D Then Exit For
+                Dim take As Decimal = Money.Round2(Math.Min(left, row.Due))
+                InvoicesRepository.InsertPayment(c, tx, Uuid7.NewId(), row.InvoiceId, session.BranchId,
+                                                 methodId, take, reference, occurredAt, session.UserId)
+                Dim newDue As Decimal = Money.Round2(row.Due - take)
+                InvoicesRepository.SetSettlement(c, tx, row.InvoiceId, Money.Round2(row.Paid + take), newDue,
+                                                 If(newDue <= 0.005D, "paid", "partial"))
+                left = Money.Round2(left - take)
+                settledCount += 1
+            Next
+
+            ' ---- drawer ----------------------------------------------------
+            If PostingHelper.IsCashMethod(c, methodId, tx) Then
+                Dim cashboxId As Long? = ShiftsRepository.GetDefaultCashbox(c, session.BranchId, tx)
+                If cashboxId.HasValue Then
+                    Dim shift = ShiftsRepository.GetOpen(c, session.BranchId, session.UserId, tx)
+                    Dim shiftId As Long? = If(shift IsNot Nothing, CType(shift.Id, Long?), Nothing)
+                    ShiftsRepository.AddCashMove(c, tx, Uuid7.NewId(), cashboxId.Value, shiftId, "in", wanted,
+                                                 "customer_collection", Nothing, session.UserId)
+                End If
+            End If
+
+            ' ---- journal: cash in, receivable down -------------------------
+            Dim journalLines As New List(Of JournalLineInput) From {
+                New JournalLineInput With {
+                    .AccountId = AccountingRepository.GetAccountId(c, AccountingRepository.AccCash, tx),
+                    .Debit = wanted, .Description = "تحصيل آجل من " & party.PartyName},
+                New JournalLineInput With {
+                    .AccountId = AccountingRepository.GetAccountId(c, AccountingRepository.AccReceivable, tx),
+                    .Credit = wanted, .Description = "سداد آجل — " & party.PartyName}
+            }
+            AccountingRepository.InsertEntry(c, tx, Uuid7.NewId(), session.BranchId, businessDate,
+                                             "تحصيل آجل من " & party.PartyName, "customer_collection",
+                                             Nothing, session.UserId, journalLines)
+
+            Dim result As New CustomerCollectionResult With {
+                .CustomerId = customerId, .CustomerName = party.PartyName, .Amount = wanted,
+                .MethodName = methodName, .SettledInvoiceCount = settledCount,
+                .RemainingDue = Money.Round2(allDue - wanted),
+                .BalanceAfter = CustomersRepository.Balance(c, customerId, tx), .PaidAt = occurredAt
+            }
+
+            Dim eventId As String = Uuid7.NewId()
+            AuditRepository.Log(c, tx, eventId, session.BranchId, session.UserId, session.Username,
+                                "customer_collection", "customer", customerId.ToString(),
+                                allDue.ToString("0.##"),
+                                wanted.ToString("0.##") & " | " & methodName, session.DeviceId)
+            SyncStore.Enqueue(c, tx, eventId, session.BranchId, session.DeviceId, "customer",
+                              customerId.ToString(), "customer.collected", 1,
+                              PostingHelper.Serialize(result), occurredAt)
+
+            db.Commit()
             Return result
         End Using
     End Function

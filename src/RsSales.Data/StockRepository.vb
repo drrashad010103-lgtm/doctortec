@@ -307,7 +307,8 @@ Public NotInheritable Class InventoryCountRepository
         conn.Execute(
             "INSERT INTO inventory_count_lines(count_id, item_id, system_qty, counted_qty, variance_qty, unit_cost, variance_value) " &
             "VALUES(@cid, @iid, @sys, @cnt, @vqty, @cost, @vval) " &
-            "ON DUPLICATE KEY UPDATE counted_qty=VALUES(counted_qty), variance_qty=VALUES(variance_qty), " &
+            "ON DUPLICATE KEY UPDATE system_qty=VALUES(system_qty), counted_qty=VALUES(counted_qty), " &
+            "variance_qty=VALUES(variance_qty), " &
             "unit_cost=VALUES(unit_cost), variance_value=VALUES(variance_value)",
             New With {
                 .cid = countId, .iid = itemId, .sys = systemQty, .cnt = countedQty,

@@ -641,16 +641,22 @@ Public Class BranchIsolationTests
             New With {.b = branchB, .i = itemId}))
 
         ' ---- drawer and payments per branch ------------------------------
+        ' Scoped to this test's shifts: the branch cashbox also carries the
+        ' movements of every other test sharing this database.
         Assert.Equal(228D, _db.ScalarDecimal(
             "SELECT COALESCE(SUM(cm.amount),0) FROM cash_moves cm JOIN cashboxes cb ON cb.id=cm.cashbox_id " &
-            "WHERE cb.branch_id=@b", New With {.b = _db.BranchId}))
+            "WHERE cb.branch_id=@b AND cm.shift_id=@s", New With {.b = _db.BranchId, .s = shiftA.Id}))
         Assert.Equal(342D, _db.ScalarDecimal(
             "SELECT COALESCE(SUM(cm.amount),0) FROM cash_moves cm JOIN cashboxes cb ON cb.id=cm.cashbox_id " &
-            "WHERE cb.branch_id=@b", New With {.b = branchB}))
+            "WHERE cb.branch_id=@b AND cm.shift_id=@s", New With {.b = branchB, .s = shiftB.Id}))
         Assert.Equal(228D, _db.ScalarDecimal(
-            "SELECT COALESCE(SUM(amount),0) FROM payments WHERE branch_id=@b", New With {.b = _db.BranchId}))
+            "SELECT COALESCE(SUM(amount),0) FROM payments WHERE branch_id=@b " &
+            "AND invoice_id IN (SELECT id FROM invoices WHERE shift_id=@s)",
+            New With {.b = _db.BranchId, .s = shiftA.Id}))
         Assert.Equal(342D, _db.ScalarDecimal(
-            "SELECT COALESCE(SUM(amount),0) FROM payments WHERE branch_id=@b", New With {.b = branchB}))
+            "SELECT COALESCE(SUM(amount),0) FROM payments WHERE branch_id=@b " &
+            "AND invoice_id IN (SELECT id FROM invoices WHERE shift_id=@s)",
+            New With {.b = branchB, .s = shiftB.Id}))
 
         ' ---- ledger and tax report per branch ----------------------------
         Dim trialA = ReportService.TrialBalance(sessionA, day.AddDays(-1), day.AddDays(1))

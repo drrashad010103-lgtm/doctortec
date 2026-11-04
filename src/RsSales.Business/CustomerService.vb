@@ -271,14 +271,14 @@ Public NotInheritable Class ShiftService
     Public Shared Function ListSafeBalances(session As AppSession) As List(Of SafeBalanceRow)
         Using db = DbSession.Open(session.ConnectionString)
             Const sql As String =
-                "SELECT cb.id AS Id, cb.code AS Code, cb.name AS Name, cb.branch_id AS BranchId, " &
+                "SELECT cb.id AS Id, cb.name AS Name, cb.branch_id AS BranchId, " &
                 "       COALESCE(SUM(CASE WHEN cm.direction='in' THEN cm.amount ELSE 0 END), 0) AS TotalIn, " &
                 "       COALESCE(SUM(CASE WHEN cm.direction='out' THEN cm.amount ELSE 0 END), 0) AS TotalOut, " &
                 "       COALESCE(SUM(CASE WHEN cm.direction='in' THEN cm.amount WHEN cm.direction='out' THEN -cm.amount ELSE 0 END), 0) AS CurrentBalance " &
                 "FROM cashboxes cb " &
                 "LEFT JOIN cash_moves cm ON cm.cashbox_id = cb.id " &
                 "WHERE cb.is_active = 1 AND (cb.branch_id = @b OR @b > 0) " &
-                "GROUP BY cb.id, cb.code, cb.name, cb.branch_id " &
+                "GROUP BY cb.id, cb.name, cb.branch_id " &
                 "ORDER BY cb.id"
             Return db.Connection.Query(Of SafeBalanceRow)(sql, New With {.b = session.BranchId}).AsList()
         End Using

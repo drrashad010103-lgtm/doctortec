@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace></RootNamespace>
+    <StartupObject>Program</StartupObject>
+    <IsPackable>false</IsPackable>
+    <NoWarn>BC42015;BC42016</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RsSales.UI\RsSales.UI.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Infrastructure\RsSales.Infrastructure.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Data\RsSales.Data.vbproj" />
+    <ProjectReference Include="..\..\src\RsSales.Domain\RsSales.Domain.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
+    <None Include="..\..\src\RsSales.UI\bin\Release\net10.0-windows\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

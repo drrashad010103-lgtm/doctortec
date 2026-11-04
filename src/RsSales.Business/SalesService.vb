@@ -65,6 +65,10 @@ Public NotInheritable Class SalesService
                 If line.LineDiscount > Money.Round2(line.Qty * unitPrice) Then
                     Throw New BusinessException("خصم البند أكبر من قيمة البند للصنف " & item.NameAr & ".")
                 End If
+                If line.ExpiryDate.HasValue AndAlso line.ExpiryDate.Value.Date < businessDate Then
+                    Throw New BusinessException("الصنف «" & item.NameAr & "» منتهي الصلاحية بتاريخ " &
+                                                line.ExpiryDate.Value.ToString("yyyy-MM-dd") & ".")
+                End If
 
                 Dim taxCategoryId As Long = If(line.TaxCategoryId.HasValue AndAlso line.TaxCategoryId.Value > 0,
                                                line.TaxCategoryId.Value, item.TaxCategoryId)
@@ -211,6 +215,28 @@ Public NotInheritable Class SalesService
             End If
             Dim totalSettled As Decimal = Money.Round2(cashOrMethodPaid + voucherPaid)
             Dim due As Decimal = Money.Round2(totals.Total - totalSettled)
+
+            ' ---- 3c. credit limit ----------------------------------------------
+            If due > 0D AndAlso request.CustomerId.HasValue AndAlso request.CustomerId.Value > 0 AndAlso
+               Not AuthorizationService.Can(session, Permissions.SalesCreditOverride) Then
+                Dim creditLimit As Decimal = db.Connection.ExecuteScalar(Of Decimal)(
+                    "SELECT COALESCE(credit_limit,0) FROM customers WHERE id=@c",
+                    New With {.c = request.CustomerId.Value}, tx)
+                ' عميل بلا سقف مسجّل = السقف الافتراضي للمحل، مش «بلا حدود».
+                If creditLimit <= 0D Then
+                    creditLimit = SettingsRepository.GetDecimal(db.Connection, "sales.default_credit_limit", 500D, tx)
+                End If
+                If creditLimit > 0D Then
+                    Dim currentBalance As Decimal = CustomersRepository.Balance(db.Connection,
+                                                                                request.CustomerId.Value, tx)
+                    If currentBalance + due > creditLimit Then
+                        Throw New BusinessException(
+                            "سقف الائتمان للعميل (" & creditLimit.ToString("0.##") & ") لا يكفي: رصيد العميل " &
+                            currentBalance.ToString("0.##") & " والمطلوب آجلًا " & due.ToString("0.##") &
+                            ". حصّل من العميل أو استخدم صلاحية تجاوز سقف الائتمان.")
+                    End If
+                End If
+            End If
 
             Dim paymentMethodId As Long = request.PaymentMethodId
             If paymentMethodId <= 0 Then paymentMethodId = PostingHelper.DefaultPaymentMethod(db.Connection, tx)

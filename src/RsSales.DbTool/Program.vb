@@ -1,3 +1,4 @@
+Imports System.Globalization
 Imports System
 Imports System.Collections.Generic
 Imports System.IO
@@ -25,6 +26,8 @@ Module Program
                     RunRollback(options)
                 Case "seed"
                     RunSeed(options)
+                Case "seed-base"
+                    RunSeedBase(options)
                 Case "create-admin"
                     RunCreateAdmin(options)
                 Case "import-legacy"
@@ -33,6 +36,14 @@ Module Program
                     RunDiffLegacy(options)
                 Case "apply-cost-margin"
                     RunApplyCostMargin(options)
+                Case "renumber-codes"
+                    RunRenumberCodes(options)
+                Case "export-items"
+                    RunExportItems(options)
+                Case "import-catalog"
+                    RunImportCatalog(options)
+                Case "find-item"
+                    RunFindItem(options)
                 Case "verify"
                     RunVerify(options)
                 Case "status"
@@ -60,6 +71,11 @@ Module Program
         Console.WriteLine("  rollback       [--conn CS] [--dir db/rollback] [--version V001]")
         Console.WriteLine("  seed           [--conn CS] [--branch MAIN] [--tax-no 123] [--admin admin] [--password ...]")
         Console.WriteLine("                 (--password is required when the admin user does not exist yet)")
+        Console.WriteLine("  seed-base      [--conn CS] [--branch MAIN] [--seller اسم] [--delivery اسم] [--dry-run 1]")
+        Console.WriteLine("                 (run-ready base data: cashbox, payment methods نقدي/فيزا/محفظة")
+        Console.WriteLine("                  إنستاپاي, units, item groups, warehouse, HR department, one")
+        Console.WriteLine("                  seller and one delivery person. Repeatable — existing rows are")
+        Console.WriteLine("                  reported as «موجود» and never overwritten; --dry-run writes nothing)")
         Console.WriteLine("  create-admin   [--conn CS] --username u --password p --name ""Full Name"" [--branch 1]")
         Console.WriteLine("  import-legacy  [--conn CS] [--source CS] [--limit N] [--dry-run 1]")
         Console.WriteLine("                 (--source defaults to the legacy rs_pharmacy database;")
@@ -67,11 +83,23 @@ Module Program
         Console.WriteLine("  apply-cost-margin [--conn CS] --percent 25 [--backup PATH] [--dry-run 1]")
         Console.WriteLine("                 (sale price is the base: rewrites items.cost_price in the app")
         Console.WriteLine("                  database only, after writing a full CSV backup)")
+        Console.WriteLine("  renumber-codes [--conn CS] [--backup PATH] [--dry-run 1] [--force 1]")
+        Console.WriteLine("                 (rewrites items.code as 1..N in the same order the item list")
+        Console.WriteLine("                  uses, keeping each barcode in item_barcodes; CSV backup first)")
         Console.WriteLine("  verify         [--conn CS]")
         Console.WriteLine("  diff-legacy    [--conn CS] [--source CS] [--samples N]")
         Console.WriteLine("                 (read-only: compares app items against the legacy source and")
         Console.WriteLine("                  counts rows hand-edited in the app after import-legacy)")
         Console.WriteLine("  status         [--conn CS]")
+        Console.WriteLine("  export-items   [--conn CS] [--out PATH] [--like TEXT]")
+        Console.WriteLine("                 (read-only: writes item codes, names, prices and barcodes to CSV)")
+        Console.WriteLine("  import-catalog [--conn CS] --csv PATH [--confirm 1] [--force 1]")
+        Console.WriteLine("                 (replaces the whole item list with a CSV of")
+        Console.WriteLine("                  id,name_ar,name_en,barcode,cost,sale; without --confirm 1 it")
+        Console.WriteLine("                  only reports what would change and writes nothing)")
+        Console.WriteLine("  find-item      [--conn CS] --term TEXT")
+        Console.WriteLine("                 (read-only: runs the same lookup the sale screen uses;")
+        Console.WriteLine("                  digits match code/barcode exactly, letters match names)")
         Console.WriteLine()
         Console.WriteLine("Connection string can also come from RSSALES_CONNECTION.")
     End Sub
@@ -267,7 +295,8 @@ Module Program
             "items.manage", "sales.create", "sales.return", "sales.discount", "sales.below_min_price",
             "purchases.create", "purchases.return", "customers.manage", "stock.adjust", "stock.transfer",
             "stock.opening", "tax.manage", "settings.manage", "reports.view", "reports.all_branches",
-            "shifts.open", "shifts.close", "users.manage", "sync.manage", "reports.profit", "hr.manage"
+            "shifts.open", "shifts.close", "users.manage", "sync.manage", "reports.profit", "hr.manage",
+            "sales.credit_override"
         }
         For Each code In permissions
             conn.Execute("INSERT INTO permissions(code) VALUES(@c) ON DUPLICATE KEY UPDATE code=VALUES(code)",
@@ -279,7 +308,8 @@ Module Program
             Tuple.Create("manager", "مدير فرع",
                 New String() {"items.manage", "sales.create", "sales.return", "sales.discount", "sales.below_min_price",
                               "purchases.create", "purchases.return", "customers.manage", "stock.adjust",
-                              "stock.transfer", "stock.opening", "reports.view", "reports.profit", "shifts.open", "shifts.close", "hr.manage"}),
+                              "stock.transfer", "stock.opening", "reports.view", "reports.profit", "shifts.open",
+                              "shifts.close", "hr.manage", "sales.credit_override"}),
             Tuple.Create("cashier", "كاشير",
                 New String() {"sales.create", "sales.return", "shifts.open", "shifts.close", "reports.view"}),
             Tuple.Create("accountant", "محاسب",
@@ -336,6 +366,249 @@ Module Program
                 "INSERT INTO settings(k, v) VALUES(@k, @v) ON DUPLICATE KEY UPDATE v=VALUES(v)",
                 New With {.k = setting.Item1, .v = setting.Item2}, tx)
         Next
+    End Sub
+
+    ''' <summary>
+    ''' البيانات الأساسية الجاهزة للتشغيل: خزنة، طرق دفع، وحدات، مجموعات أصناف،
+    ''' مخزن، قسم بيع، بائع واحد ودليفرى. كل سطر يفحص قبل ما يكتب، فالتكرار آمن،
+    ''' ولا شيء موجود يتعدّل — القيم اللي المضוף يغيّرها من شاشاتها تفضل زي ما هي.
+    ''' </summary>
+    Private Sub RunSeedBase(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim dryRun As Boolean = GetOption(options, "dry-run", "0") = "1"
+        Dim branchCode As String = GetOption(options, "branch", "MAIN")
+        Dim sellerName As String = GetOption(options, "seller", "المدير")
+        Dim deliveryName As String = GetOption(options, "delivery", "دليفري المتجر")
+
+        Using db = DbSession.Open(targetConn)
+            db.BeginTransaction()
+            Dim tx = db.Transaction
+            Dim c = db.Connection
+
+            Dim branchId As Long = c.ExecuteScalar(Of Long)(
+                "SELECT id FROM branches WHERE code=@c", New With {.c = branchCode}, tx)
+            If branchId = 0 Then
+                branchId = c.ExecuteScalar(Of Long)("SELECT id FROM branches ORDER BY id LIMIT 1", Nothing, tx)
+            End If
+            If branchId = 0 Then Throw New InvalidOperationException("لا يوجد فرع في القاعدة — شغّل seed أولاً.")
+            Console.WriteLine("الفرع: " & c.ExecuteScalar(Of String)(
+                "SELECT name FROM branches WHERE id=@b", New With {.b = branchId}, tx))
+
+            PrintBaseData(c, tx, branchId)
+
+            Console.WriteLine()
+            Console.WriteLine("طرق الدفع:")
+            EnsurePaymentMethod(c, tx, "نقدي", False)
+            EnsurePaymentMethod(c, tx, "فيزا", True)
+            EnsurePaymentMethod(c, tx, "محفظة إنستاپاي", True)
+            ' الطرق القديمة تتقفل (مش تتحذف) حتى السجل القديم يفضل مقروء.
+            Dim retired As Integer = c.Execute(
+                "UPDATE payment_methods SET is_active=0 " &
+                "WHERE is_active=1 AND name NOT IN ('نقدي','فيزا','محفظة إنستاپاي') " &
+                "AND id NOT IN (SELECT method_id FROM payments WHERE method_id IS NOT NULL)", Nothing, tx)
+            Console.WriteLine("  · طرق قديمة اتقفلت: " & retired.ToString())
+
+            Console.WriteLine()
+            Console.WriteLine("الخزن والمخازن:")
+            EnsureCashbox(c, tx, branchId, "خزنة المتجر")
+            EnsureWarehouse(c, tx, branchId, "MAIN", "المخزن الرئيسي")
+
+            Console.WriteLine()
+            Console.WriteLine("الوحدات:")
+            For Each name In New String() {"حبة", "قطعة", "علبة", "كرتونة", "عبوة", "زجاجة", "أنبوبة",
+                                           "جرام", "كيس", "مل", "لتر"}
+                EnsureUnit(c, tx, name)
+            Next
+
+            Console.WriteLine()
+            Console.WriteLine("مجموعات الأصناف:")
+            For Each name In New String() {"العناية بالبشرة", "المكياج", "العناية بالشعر", "العطور",
+                                           "العناية بالجسم واليدين", "النظافة الشخصية",
+                                           "مستلزمات الأطفال", "إكسسوارات التجميل", "عناية رجالية"}
+                EnsureItemGroup(c, tx, name)
+            Next
+
+            Console.WriteLine()
+            Console.WriteLine("الأقسام والباعة:")
+            EnsureTaxCategories(c, tx)
+            EnsureSetting(c, tx, "sales.default_credit_limit", "500")
+            Dim departmentId As Long = EnsureDepartment(c, tx, "البيع")
+            EnsureEmployee(c, tx, sellerName, "seller", departmentId, 0D, 0D)
+            EnsureEmployee(c, tx, deliveryName, "delivery", departmentId, 0D, 0D)
+
+            Console.WriteLine()
+            If dryRun Then
+                Console.WriteLine("وضع الفحص فقط — ماحدش حاجة اتكتبت.")
+            Else
+                db.Commit()
+                Console.WriteLine("تمام، البيانات الأساسية اتسجّلت.")
+            End If
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' ما هو موجود فعلًا في جداول البيانات الأساسية — حتى ما يتكرّرش سطر موازي
+    ''' (خزنة تانية، نفس نسبة الضريبة، نفس الطريقة باسم مختلف).
+    ''' </summary>
+    Private Sub PrintBaseData(c As MySqlConnection, tx As MySqlTransaction, branchId As Long)
+        Console.WriteLine()
+        Console.WriteLine("الموجود في القاعدة الآن:")
+        Console.WriteLine("  طرق الدفع     : " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(name ORDER BY id SEPARATOR ' / ') FROM payment_methods", Nothing))
+        Console.WriteLine("  الخزن          : " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(name ORDER BY id SEPARATOR ' / ') FROM cashboxes " &
+            "WHERE branch_id=@b AND is_active=1", New With {.b = branchId}))
+        Console.WriteLine("  المخازن       : " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(name ORDER BY id SEPARATOR ' / ') FROM warehouses " &
+            "WHERE branch_id=@b AND is_active=1", New With {.b = branchId}))
+        Console.WriteLine("  الوحدات       : " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(name ORDER BY id SEPARATOR ' / ') FROM units", Nothing))
+        Console.WriteLine("  المجموعات     : " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(name ORDER BY id SEPARATOR ' / ') FROM item_groups", Nothing))
+        Console.WriteLine("  التصنيفات     : " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(CONCAT(code,' ',CAST(rate AS CHAR)) ORDER BY id SEPARATOR ' / ') " &
+            "FROM tax_categories", Nothing))
+        Console.WriteLine("  الباعة/الدليفري: " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(CONCAT(name,' (',code,')') ORDER BY id SEPARATOR ' / ') " &
+            "FROM hr_employees WHERE employee_type IN ('seller','delivery') AND is_active=1", Nothing))
+        Console.WriteLine("  الأصناف حسب التصنيف: " & NamesOf(c, tx,
+            "SELECT GROUP_CONCAT(CONCAT(code,' = ',CAST(n AS CHAR)) SEPARATOR ' / ') FROM " &
+            "(SELECT t.code, COUNT(*) AS n FROM items i JOIN tax_categories t ON t.id=i.tax_category_id " &
+            "GROUP BY t.code) x", Nothing))
+    End Sub
+
+    ''' <summary>سطر واحد يلخّص الأسماء؛ «فاضي» معناه الجدول ده فاضي فعلًا.</summary>
+    Private Function NamesOf(c As MySqlConnection, tx As MySqlTransaction,
+                             sql As String, param As Object) As String
+        Dim value As String = c.ExecuteScalar(Of String)(sql, param, tx)
+        If String.IsNullOrWhiteSpace(value) Then Return "فاضي"
+        Return value
+    End Function
+
+    Private Sub EnsurePaymentMethod(c As MySqlConnection, tx As MySqlTransaction,
+                                    name As String, requiresReference As Boolean)
+        Dim state As String = c.ExecuteScalar(Of String)(
+            "SELECT IF(is_active=1,'موجود','موجود ومقفول') FROM payment_methods WHERE name=@n",
+            New With {.n = name}, tx)
+        If state Is Nothing Then
+            c.Execute("INSERT INTO payment_methods(name, requires_reference) VALUES(@n, @r)",
+                      New With {.n = name, .r = requiresReference}, tx)
+            Console.WriteLine("  + " & name & " (جديد)")
+        Else
+            Console.WriteLine("  · " & name & " (" & state & ")")
+        End If
+    End Sub
+
+    ''' <summary>سطر واحد في جدول بسيط: يضاف لو مش موجود، وإلا يتقال عليه موجود.</summary>
+    ''' <summary>خزنة واحدة على الأقل للفرع — الموجودة ما بيتساش عليها التانية.</summary>
+    Private Sub EnsureCashbox(c As MySqlConnection, tx As MySqlTransaction, branchId As Long, name As String)
+        Dim existing As String = c.ExecuteScalar(Of String)(
+            "SELECT name FROM cashboxes WHERE branch_id=@b AND is_active=1 ORDER BY id LIMIT 1",
+            New With {.b = branchId}, tx)
+        If existing IsNot Nothing Then
+            Console.WriteLine("  · " & existing & " (موجودة)")
+            Return
+        End If
+        c.Execute("INSERT INTO cashboxes(branch_id, name) VALUES(@b, @n)",
+                  New With {.b = branchId, .n = name}, tx)
+        Console.WriteLine("  + " & name & " (جديد)")
+    End Sub
+
+    Private Sub EnsureWarehouse(c As MySqlConnection, tx As MySqlTransaction, branchId As Long,
+                                code As String, name As String)
+        Dim id As Long = c.ExecuteScalar(Of Long)(
+            "SELECT id FROM warehouses WHERE branch_id=@b AND code=@c", New With {.b = branchId, .c = code}, tx)
+        If id = 0 Then
+            c.Execute("INSERT INTO warehouses(branch_id, code, name) VALUES(@b, @c, @n)",
+                      New With {.b = branchId, .c = code, .n = name}, tx)
+            Console.WriteLine("  + " & name & " (جديد)")
+        Else
+            Console.WriteLine("  · " & name & " (موجود)")
+        End If
+    End Sub
+
+    Private Sub EnsureUnit(c As MySqlConnection, tx As MySqlTransaction, name As String)
+        Dim id As Long = c.ExecuteScalar(Of Long)(
+            "SELECT id FROM units WHERE name=@n", New With {.n = name}, tx)
+        If id = 0 Then
+            c.Execute("INSERT INTO units(name) VALUES(@n)", New With {.n = name}, tx)
+            Console.WriteLine("  + " & name & " (جديد)")
+        Else
+            Console.WriteLine("  · " & name & " (موجود)")
+        End If
+    End Sub
+
+    Private Sub EnsureItemGroup(c As MySqlConnection, tx As MySqlTransaction, name As String)
+        Dim id As Long = c.ExecuteScalar(Of Long)(
+            "SELECT id FROM item_groups WHERE name=@n", New With {.n = name}, tx)
+        If id = 0 Then
+            c.Execute("INSERT INTO item_groups(name) VALUES(@n)", New With {.n = name}, tx)
+            Console.WriteLine("  + " & name & " (جديد)")
+        Else
+            Console.WriteLine("  · " & name & " (موجود)")
+        End If
+    End Sub
+
+    Private Sub EnsureTaxCategories(c As MySqlConnection, tx As MySqlTransaction)
+        Dim categories As New List(Of Tuple(Of String, String, Decimal, Boolean)) From {
+            Tuple.Create("vat14", "ضريبة قيمة مضافة 14%", 14D, False),
+            Tuple.Create("vat0", "ضريبة صفرية", 0D, False),
+            Tuple.Create("exempt", "معفى من الضريبة", 0D, True)
+        }
+        For Each cat In categories
+            Dim id As Long = c.ExecuteScalar(Of Long)(
+                "SELECT id FROM tax_categories WHERE code=@c", New With {.c = cat.Item1}, tx)
+            If id = 0 Then
+                c.Execute("INSERT INTO tax_categories(code, name_ar, name_en, rate, is_exempt, effective_from) " &
+                          "VALUES(@c, @n, @n, @r, @e, '2024-01-01')",
+                          New With {.c = cat.Item1, .n = cat.Item2, .r = cat.Item3, .e = cat.Item4}, tx)
+                Console.WriteLine("  + تصنيف ضريبي " & cat.Item2 & " (جديد)")
+            Else
+                Console.WriteLine("  · تصنيف ضريبي " & cat.Item2 & " (موجود)")
+            End If
+        Next
+    End Sub
+
+    ''' <summary>يكتب الإعداد فقط لو مش موجود — قيمة المضוף ما تتلغاش بإعادة التشغيل.</summary>
+    Private Sub EnsureSetting(c As MySqlConnection, tx As MySqlTransaction, key As String, value As String)
+        Dim found As Long = c.ExecuteScalar(Of Long)(
+            "SELECT COUNT(*) FROM settings WHERE k=@k", New With {.k = key}, tx)
+        If found = 0 Then
+            c.Execute("INSERT INTO settings(k, v) VALUES(@k, @v)", New With {.k = key, .v = value}, tx)
+            Console.WriteLine("  + " & key & " = " & value & " (جديد)")
+        Else
+            Console.WriteLine("  · " & key & " (موجود — ما بيتغيرش)")
+        End If
+    End Sub
+
+    Private Function EnsureDepartment(c As MySqlConnection, tx As MySqlTransaction, name As String) As Long
+        Dim id As Long = c.ExecuteScalar(Of Long)(
+            "SELECT id FROM hr_departments WHERE name=@n", New With {.n = name}, tx)
+        If id > 0 Then
+            Console.WriteLine("  · قسم " & name & " (موجود)")
+            Return id
+        End If
+        c.Execute("INSERT INTO hr_departments(name) VALUES(@n)", New With {.n = name}, tx)
+        id = c.ExecuteScalar(Of Long)("SELECT LAST_INSERT_ID()", Nothing, tx)
+        Console.WriteLine("  + قسم " & name & " (جديد)")
+        Return id
+    End Function
+
+    Private Sub EnsureEmployee(c As MySqlConnection, tx As MySqlTransaction, name As String,
+                               employeeType As String, departmentId As Long,
+                               commissionPercent As Decimal, deliveryFee As Decimal)
+        Dim id As Long = c.ExecuteScalar(Of Long)(
+            "SELECT id FROM hr_employees WHERE name=@n AND employee_type=@t",
+            New With {.n = name, .t = employeeType}, tx)
+        If id > 0 Then
+            Console.WriteLine("  · " & name & " (موجود)")
+            Return
+        End If
+        Dim code As String = HrEmployeesRepository.NextCode(c, tx, If(employeeType = "seller", "SAL", "DEL"))
+        HrEmployeesRepository.Insert(c, tx, Uuid7.NewId(), code, name, employeeType, departmentId, Nothing,
+                                     Nothing, Nothing, Nothing, Nothing, Date.Today, 0D,
+                                     commissionPercent, deliveryFee, "بيانات أساسية من seed-base")
+        Console.WriteLine("  + " & name & " (" & code & ") (جديد)")
     End Sub
 
     Private Sub RunCreateAdmin(options As Dictionary(Of String, String))
@@ -580,6 +853,9 @@ Module Program
                 Console.WriteLine($"Item codes: {codeFromBarcode} from legacy barcode, {codeFallback} kept as L+id (duplicate or reserved barcode)")
             End Using
         End Using
+
+        ' الكود في النهاية رقم متسلسل وليس الباركود، حتى بعد إعادة الاستيراد.
+        RunRenumberCodes(options)
     End Sub
 
     ''' <summary>Counts what import-legacy would move, reading the legacy database only — no writes.</summary>
@@ -669,6 +945,94 @@ Module Program
         If s.Contains(",") OrElse s.Contains(q) Then Return q & s.Replace(q, q & q) & q
         Return s
     End Function
+
+    ''' <summary>
+    ''' ترقيم أكواد الأصناف من 1 إلى عدد الأصناف بنفس ترتيب قائمة الأصناف (الاسم العربي ثم المعرّف)،
+    ''' والباركود يفضل محفوظ في item_barcodes كما هو. يكتب نسخة CSV قبل أي تعديل.
+    ''' </summary>
+    Private Sub RunRenumberCodes(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim dryRun As Boolean = GetOption(options, "dry-run", "0") = "1"
+
+        Using target = DbSession.Open(targetConn)
+            target.BeginTransaction()
+            Dim tx = target.Transaction
+
+            Dim total As Long = target.Connection.ExecuteScalar(Of Long)("SELECT COUNT(*) FROM items", Nothing, tx)
+            Dim missingBarcode As Long = target.Connection.ExecuteScalar(Of Long)(
+                "SELECT COUNT(*) FROM items i WHERE NOT EXISTS " &
+                "(SELECT 1 FROM item_barcodes b WHERE b.item_id=i.id)", Nothing, tx)
+            Console.WriteLine($"items: {total} | items with no barcode row: {missingBarcode}")
+
+            If missingBarcode > 0 AndAlso GetOption(options, "force", "0") <> "1" Then
+                Console.Error.WriteLine(
+                    $"Refusing to renumber: {missingBarcode} items have no barcode in item_barcodes, " &
+                    "so their barcode would disappear from the code column. Use --force 1 to continue anyway.")
+                target.Rollback()
+                Environment.ExitCode = 1
+                Return
+            End If
+
+            Dim ordered = target.Connection.Query(Of RenumberRow)(
+                "SELECT i.id AS Id, i.code AS OldCode, i.name_ar AS NameAr, " &
+                "       COALESCE((SELECT b.barcode FROM item_barcodes b " &
+                "                 WHERE b.item_id=i.id ORDER BY b.is_primary DESC, b.id LIMIT 1),'') AS Barcode " &
+                "FROM items i ORDER BY i.name_ar, i.id", Nothing, tx).AsList()
+
+            For i As Integer = 0 To Math.Min(4, ordered.Count - 1)
+                Console.WriteLine($"  #{i + 1}  old code [{ordered(i).OldCode}]  {ordered(i).NameAr}  barcode={ordered(i).Barcode}")
+            Next
+            If ordered.Count > 5 Then
+                Dim lastIdx As Integer = ordered.Count - 1
+                Console.WriteLine("  ...")
+                Console.WriteLine($"  #{lastIdx + 1}  old code [{ordered(lastIdx).OldCode}]  {ordered(lastIdx).NameAr}  barcode={ordered(lastIdx).Barcode}")
+            End If
+
+            If dryRun Then
+                Console.WriteLine("dry-run: nothing written.")
+                target.Rollback()
+                Return
+            End If
+
+            Dim backupPath As String = GetOption(options, "backup",
+                Path.Combine(Directory.GetCurrentDirectory(), $"codes_backup_{DateTime.Now:yyyyMMdd_HHmmss}.csv"))
+            WriteCodeBackup(ordered, backupPath)
+
+            ' الأكواد الجديدة أرقام؛ لو كود حالي رقم بالصدفة يطابق رقمًا جديدًا لم يُكتب بعد
+            ' يصطدم بالقيد الفريد، فنُنحّل هذه الصفوف مؤقتًا أولًا.
+            Dim clashes As Integer = 0
+            For i As Integer = 0 To ordered.Count - 1
+                Dim oldCode As String = If(ordered(i).OldCode, String.Empty).Trim()
+                Dim asNum As Long
+                If Long.TryParse(oldCode, asNum) AndAlso asNum >= 1 AndAlso asNum <= ordered.Count Then
+                    target.Connection.Execute("UPDATE items SET code=@code WHERE id=@id",
+                        New With {.code = "TMP$" & ordered(i).Id, .id = ordered(i).Id}, tx)
+                    clashes += 1
+                End If
+            Next
+            If clashes > 0 Then Console.WriteLine($"moved {clashes} numeric-looking codes aside first")
+
+            For i As Integer = 0 To ordered.Count - 1
+                target.Connection.Execute("UPDATE items SET code=@code WHERE id=@id",
+                    New With {.code = (i + 1).ToString(CultureInfo.InvariantCulture), .id = ordered(i).Id}, tx)
+            Next
+
+            target.Commit()
+            Console.WriteLine($"codes renumbered 1..{ordered.Count} on {ordered.Count} items. Backup: {backupPath}")
+        End Using
+    End Sub
+
+    ''' <summary>خريطة id/كود قديم/كود جديد/اسم/باركود قبل إعادة الترقيم، للرجوع لو حصل خطأ.</summary>
+    Private Sub WriteCodeBackup(rows As List(Of RenumberRow), path As String)
+        Using w As New StreamWriter(path, False, New Text.UTF8Encoding(True))
+            w.WriteLine("id,old_code,new_code,name_ar,barcode")
+            For i As Integer = 0 To rows.Count - 1
+                Dim r = rows(i)
+                w.WriteLine($"{r.Id},{Csv(r.OldCode)},{i + 1},{Csv(r.NameAr)},{Csv(r.Barcode)}")
+            Next
+        End Using
+        Console.WriteLine($"backup written: {path}")
+    End Sub
 
     ''' <summary>
     ''' مقارنة من طرف واحد فقط للقراءة: هل أسعار/أكواد الأصناف في قاعدة التطبيق مطابقة لمصدر rs_pharmacy،
@@ -881,6 +1245,306 @@ Module Program
         End If
     End Sub
 
+
+    ''' <summary>
+    ''' تصدير الأصناف إلى ملف CSV للقارنة مع نسخة قاعدة البيانات القديمة — قراءة فقط، لا يغيّر شيء.
+    ''' </summary>
+    Private Sub RunExportItems(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim outPath As String = GetOption(options, "out", "items_export.csv")
+        Dim nameFilter As String = GetOption(options, "like", String.Empty)
+
+        Dim sql As String =
+            "SELECT i.id AS Id, i.code AS Code, i.name_ar AS NameAr, i.name_en AS NameEn, " &
+            "       i.sale_price AS Sale, i.cost_price AS Cost, i.wholesale_price AS Whole, " &
+            "       i.min_price AS MinPrice, " &
+            "       COALESCE((SELECT b.barcode FROM item_barcodes b " &
+            "                 WHERE b.item_id=i.id ORDER BY b.is_primary DESC, b.id LIMIT 1),'') AS Barcode " &
+            "FROM items i"
+        If nameFilter <> String.Empty Then sql &= " WHERE i.name_ar LIKE @like"
+        sql &= " ORDER BY i.id"
+
+        Using target = DbSession.Open(targetConn)
+            Dim rows As List(Of ItemExportRow)
+            If nameFilter <> String.Empty Then
+                rows = target.Connection.Query(Of ItemExportRow)(sql, New With {.like = "%" & nameFilter & "%"}).AsList()
+            Else
+                rows = target.Connection.Query(Of ItemExportRow)(sql).AsList()
+            End If
+
+            Using w As New StreamWriter(outPath, False, New Text.UTF8Encoding(True))
+                w.WriteLine("id,code,name_ar,name_en,sale,cost,whole,min_price,barcode")
+                For Each r In rows
+                    w.WriteLine(String.Join(",", {r.Id, Csv(r.Code), Csv(r.NameAr), Csv(r.NameEn),
+                        r.Sale.ToString(CultureInfo.InvariantCulture), r.Cost.ToString(CultureInfo.InvariantCulture),
+                        r.Whole.ToString(CultureInfo.InvariantCulture), r.MinPrice.ToString(CultureInfo.InvariantCulture),
+                        Csv(r.Barcode)}))
+                Next
+            End Using
+            Console.WriteLine("exported " & rows.Count & " items -> " & outPath)
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' يستبدل قائمة الأصناف بالكامل بملف كتالوج: id,name_ar,name_en,barcode,cost,sale.
+    ''' بدون --confirm 1 يقرأ ويعرض ما سيحدث فقط، ولا يلمس قاعدة البيانات.
+    ''' </summary>
+    Private Sub RunImportCatalog(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim csvPath As String = GetOption(options, "csv", Nothing)
+        If String.IsNullOrWhiteSpace(csvPath) Then
+            Console.Error.WriteLine("ERROR: --csv PATH is required.")
+            Environment.ExitCode = 1
+            Return
+        End If
+        If Not File.Exists(csvPath) Then
+            Console.Error.WriteLine("ERROR: file not found: " & csvPath)
+            Environment.ExitCode = 1
+            Return
+        End If
+
+        Dim confirm As Boolean = GetOption(options, "confirm", "0") = "1"
+        Dim force As Boolean = GetOption(options, "force", "0") = "1"
+
+        Dim parsed As List(Of CatalogRow) = ReadCatalogCsv(csvPath)
+        Console.WriteLine("catalog rows in file: " & parsed.Count.ToString())
+        If parsed.Count = 0 Then
+            Console.Error.WriteLine("ERROR: no usable rows in the catalog file.")
+            Environment.ExitCode = 1
+            Return
+        End If
+
+        Dim wanted As New List(Of CatalogRow)()
+        Dim seenIds As New HashSet(Of Long)()
+        Dim skipped As Integer = 0
+        For Each r In parsed
+            If r.Id <= 0L OrElse Not seenIds.Add(r.Id) OrElse r.NameAr.Length = 0 Then
+                skipped += 1
+                Continue For
+            End If
+            wanted.Add(r)
+        Next
+        If skipped > 0 Then Console.WriteLine("skipped (repeated id or empty name): " & skipped.ToString())
+        Console.WriteLine("items to install: " & wanted.Count.ToString())
+
+        Using target = DbSession.Open(targetConn)
+            Dim keep As New HashSet(Of String)(StringComparer.Ordinal)
+            For Each r In wanted
+                If r.Barcode.Length > 0 Then keep.Add(r.Barcode)
+            Next
+
+            Dim existing As Long = target.Connection.ExecuteScalar(Of Long)("SELECT COUNT(*) FROM items")
+            Dim carried = target.Connection.ExecuteScalar(Of Long)(
+                "SELECT COUNT(*) FROM item_barcodes WHERE barcode IN @codes", New With {.codes = keep})
+            Console.WriteLine("current items in the database: " & existing.ToString())
+            Console.WriteLine("catalog barcodes already present: " & carried.ToString() &
+                " (old items without one of them are dropped)")
+
+            Dim blockers = target.Connection.Query(Of CountRow)(
+                "SELECT 'invoice_lines' AS tbl, COUNT(*) AS n FROM invoice_lines " &
+                "UNION ALL SELECT 'stock_moves', COUNT(*) FROM stock_moves " &
+                "UNION ALL SELECT 'stock_transfer_lines', COUNT(*) FROM stock_transfer_lines " &
+                "UNION ALL SELECT 'inventory_count_lines', COUNT(*) FROM inventory_count_lines " &
+                "UNION ALL SELECT 'quote_lines', COUNT(*) FROM quote_lines")
+            Dim blocked As New List(Of String)()
+            For Each b In blockers
+                Console.WriteLine("  rows that reference items: " & b.Tbl & " = " & b.N.ToString())
+                If b.N > 0 Then blocked.Add(b.Tbl & "=" & b.N.ToString())
+            Next
+
+            If Not confirm Then
+                Console.WriteLine()
+                Console.WriteLine("DRY RUN: nothing written. Re-run with --confirm 1 to replace the catalogue.")
+                Return
+            End If
+            If blocked.Count > 0 AndAlso Not force Then
+                Console.Error.WriteLine("ERROR: documents still reference these items (" &
+                    String.Join(", ", blocked) & "). Refusing to delete them; use --force 1 only on purpose.")
+                Environment.ExitCode = 2
+                Return
+            End If
+
+            Dim taxId As Long = target.Connection.ExecuteScalar(Of Long)("SELECT id FROM tax_categories WHERE code='vat0'")
+            If taxId = 0 Then
+                Console.Error.WriteLine("ERROR: the zero-rate tax category (vat0) is missing.")
+                Environment.ExitCode = 1
+                Return
+            End If
+            Dim unitRaw As Object = target.Connection.ExecuteScalar("SELECT MIN(id) FROM units")
+            Dim defaultUnit As Long? = Nothing
+            If unitRaw IsNot Nothing AndAlso Not DBNull.Value.Equals(unitRaw) Then defaultUnit = Convert.ToInt64(unitRaw)
+
+            target.BeginTransaction()
+            Dim tx = target.Transaction
+
+            Dim removed As Long = target.Connection.ExecuteScalar(Of Long)("SELECT COUNT(*) FROM items", Nothing, tx)
+            target.Connection.Execute("DELETE FROM item_barcodes", Nothing, tx)
+            target.Connection.Execute("DELETE FROM item_units", Nothing, tx)
+            target.Connection.Execute("DELETE FROM item_price_history", Nothing, tx)
+            target.Connection.Execute("DELETE FROM stock_balances", Nothing, tx)
+            target.Connection.Execute("DELETE FROM items", Nothing, tx)
+
+            Dim batch As Integer = 250
+            Dim inserted As Integer = 0
+            Dim i As Integer = 0
+            While i < wanted.Count
+                Dim last As Integer = Math.Min(wanted.Count - 1, i + batch - 1)
+                Dim sb As New Text.StringBuilder(
+                    "INSERT INTO items(id, uuid, code, name_ar, name_en, group_id, base_unit_id, cost_price, " &
+                    "sale_price, wholesale_price, min_price, reorder_level, tax_category_id, is_active) VALUES ")
+                Dim p As New DynamicParameters()
+                For k As Integer = i To last
+                    If k > i Then sb.Append(", ")
+                    Dim r = wanted(k)
+                    sb.Append("(@id" & k & ", @uuid" & k & ", @code" & k & ", @ar" & k & ", @en" & k &
+                        ", NULL, @unit" & k & ", @cost" & k & ", @sale" & k & ", @sale" & k &
+                        ", 0, 0, @tax" & k & ", 1)")
+                    p.Add("id" & k, r.Id)
+                    p.Add("uuid" & k, Uuid7.NewId())
+                    p.Add("code" & k, r.Id.ToString(CultureInfo.InvariantCulture))
+                    p.Add("ar" & k, r.NameAr)
+                    p.Add("en" & k, If(r.NameEn.Length = 0, Nothing, r.NameEn))
+                    p.Add("unit" & k, defaultUnit)
+                    p.Add("cost" & k, r.Cost)
+                    p.Add("sale" & k, r.Sale)
+                    p.Add("tax" & k, taxId)
+                Next
+                target.Connection.Execute(sb.ToString(), p, tx)
+                inserted += (last - i + 1)
+                i = last + 1
+                If inserted Mod 5000 < batch Then Console.WriteLine("  items: " & inserted.ToString())
+            End While
+
+            Dim bcRows As New List(Of CatalogRow)()
+            Dim usedBc As New HashSet(Of String)(StringComparer.Ordinal)
+            Dim dupBc As Integer = 0
+            For Each r In wanted
+                If r.Barcode.Length = 0 Then Continue For
+                If Not usedBc.Add(r.Barcode) Then
+                    dupBc += 1
+                    Continue For
+                End If
+                bcRows.Add(r)
+            Next
+
+            Dim bcInserted As Integer = 0
+            i = 0
+            While i < bcRows.Count
+                Dim last As Integer = Math.Min(bcRows.Count - 1, i + batch - 1)
+                Dim sb As New Text.StringBuilder("INSERT INTO item_barcodes(item_id, barcode, is_primary) VALUES ")
+                Dim p As New DynamicParameters()
+                For k As Integer = i To last
+                    If k > i Then sb.Append(", ")
+                    sb.Append("(@i" & k & ", @b" & k & ", 1)")
+                    p.Add("i" & k, bcRows(k).Id)
+                    p.Add("b" & k, bcRows(k).Barcode)
+                Next
+                target.Connection.Execute(sb.ToString(), p, tx)
+                bcInserted += (last - i + 1)
+                i = last + 1
+            End While
+
+            target.Commit()
+            Console.WriteLine("done: " & removed.ToString() & " old items deleted, " &
+                inserted.ToString() & " installed, " & bcInserted.ToString() & " barcodes linked" &
+                If(dupBc > 0, ", " & dupBc.ToString() & " duplicate barcodes left unlinked", ""))
+        End Using
+    End Sub
+
+    ''' <summary>قراءة ملف الكتالوج مع دعم القيم بين علامتي اقتباس.</summary>
+    Private Function ReadCatalogCsv(path As String) As List(Of CatalogRow)
+        Dim text = File.ReadAllText(path)
+        If text.Length > 0 AndAlso text(0) = ChrW(&HFEFF) Then text = text.Substring(1)
+
+        Dim table As New List(Of List(Of String))()
+        Dim row As New List(Of String)()
+        Dim field As New Text.StringBuilder()
+        Dim inQuotes As Boolean = False
+        For idx As Integer = 0 To text.Length - 1
+            Dim c As Char = text(idx)
+            If inQuotes Then
+                If c = """"c Then
+                    If idx + 1 < text.Length AndAlso text(idx + 1) = """"c Then
+                        field.Append(""""c)
+                        idx += 1
+                    Else
+                        inQuotes = False
+                    End If
+                Else
+                    field.Append(c)
+                End If
+            ElseIf c = """"c Then
+                inQuotes = True
+            ElseIf c = ","c Then
+                row.Add(field.ToString())
+                field.Clear()
+            ElseIf c = vbLf Then
+                row.Add(field.ToString())
+                field.Clear()
+                table.Add(row)
+                row = New List(Of String)()
+            ElseIf c = vbCr Then
+                ' يُتجاهل؛ السطر يُغلق عند vbLf
+            Else
+                field.Append(c)
+            End If
+        Next
+        If field.Length > 0 OrElse row.Count > 0 Then
+            row.Add(field.ToString())
+            table.Add(row)
+        End If
+
+        Dim result As New List(Of CatalogRow)()
+        Dim first As Boolean = True
+        For Each cells In table
+            If cells.Count < 6 Then Continue For
+            If first Then
+                first = False
+                Dim probe As Long = 0
+                If Not Long.TryParse(cells(0).Trim(), probe) Then Continue For
+            End If
+            Dim id As Long
+            If Not Long.TryParse(cells(0).Trim(), id) Then Continue For
+            Dim nameAr As String = Clip(CleanText(cells(1)), 255)
+            Dim nameEn As String = Clip(CleanText(cells(2)), 255)
+            Dim barcode As String = Clip(CleanText(cells(3)), 64)
+            result.Add(New CatalogRow With {
+                .Id = id, .NameAr = nameAr, .NameEn = nameEn, .Barcode = barcode,
+                .Cost = ParseMoney(cells(4)), .Sale = ParseMoney(cells(5))})
+        Next
+        Return result
+    End Function
+
+    Private Function CleanText(value As String) As String
+        Return If(value, String.Empty).Trim().Replace(ChrW(0).ToString(), String.Empty)
+    End Function
+
+    Private Function Clip(value As String, maxLen As Integer) As String
+        If value.Length <= maxLen Then Return value
+        Return value.Substring(0, maxLen)
+    End Function
+
+    Private Function ParseMoney(value As String) As Decimal
+        Dim d As Decimal
+        If Decimal.TryParse(If(value, String.Empty).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, d) Then
+            If d < 0D Then Return 0D
+            Return d
+        End If
+        Return 0D
+    End Function
+
+    ''' <summary>بحث بنفس الطريق الذي تستخدمه شاشة البيع: أرقام = كود أو باركود، وحروف = اسم.</summary>
+    Private Sub RunFindItem(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim term As String = GetOption(options, "term", String.Empty)
+        Using db = DbSession.Open(targetConn)
+            Dim items = ItemsRepository.Search(db.Connection, term, 150)
+            Console.WriteLine("matches for [" & term & "]: " & items.Count.ToString())
+            For Each it In items
+                Console.WriteLine("  code=" & it.Code & "  bc=" & it.Barcode & "  " & it.NameAr)
+            Next
+        End Using
+    End Sub
 End Module
 
 ' ---- typed projections for legacy import and verification -------------------
@@ -902,6 +1566,26 @@ End Class
 Friend Class LegacyUnitRow
     Public Property Id As Long
     Public Property Name As String
+End Class
+
+
+Friend Class ItemExportRow
+    Public Property Id As Long
+    Public Property Code As String
+    Public Property NameAr As String
+    Public Property NameEn As String
+    Public Property Sale As Decimal
+    Public Property Cost As Decimal
+    Public Property Whole As Decimal
+    Public Property MinPrice As Decimal
+    Public Property Barcode As String
+End Class
+
+Friend Class RenumberRow
+    Public Property Id As Long
+    Public Property OldCode As String
+    Public Property NameAr As String
+    Public Property Barcode As String
 End Class
 
 Friend Class CostMarginRow
@@ -991,6 +1675,20 @@ Friend Class VerifyJournalRow
     Public Property EntryNo As String
     Public Property Debit As Decimal
     Public Property Credit As Decimal
+End Class
+
+Friend Class CountRow
+    Public Property Tbl As String
+    Public Property N As Long
+End Class
+
+Friend Class CatalogRow
+    Public Property Id As Long
+    Public Property NameAr As String
+    Public Property NameEn As String
+    Public Property Barcode As String
+    Public Property Cost As Decimal
+    Public Property Sale As Decimal
 End Class
 
 Friend Class VerifyInvoiceRow
