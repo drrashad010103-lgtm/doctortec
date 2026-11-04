@@ -37,3 +37,6 @@ RsSales_latest.slnx
 
 # Release artifacts (regenerable, kept out of history)
 /rs_sales_complete_system.zip
+
+# cost backups written by apply-cost-margin
+cost_backup_*.csv

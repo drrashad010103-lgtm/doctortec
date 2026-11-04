@@ -31,6 +31,8 @@ Module Program
                     RunImportLegacy(options)
                 Case "diff-legacy"
                     RunDiffLegacy(options)
+                Case "apply-cost-margin"
+                    RunApplyCostMargin(options)
                 Case "verify"
                     RunVerify(options)
                 Case "status"
@@ -62,6 +64,9 @@ Module Program
         Console.WriteLine("  import-legacy  [--conn CS] [--source CS] [--limit N] [--dry-run 1]")
         Console.WriteLine("                 (--source defaults to the legacy rs_pharmacy database;")
         Console.WriteLine("                  --dry-run only counts what would be imported, writing nothing)")
+        Console.WriteLine("  apply-cost-margin [--conn CS] --percent 25 [--backup PATH] [--dry-run 1]")
+        Console.WriteLine("                 (sale price is the base: rewrites items.cost_price in the app")
+        Console.WriteLine("                  database only, after writing a full CSV backup)")
         Console.WriteLine("  verify         [--conn CS]")
         Console.WriteLine("  diff-legacy    [--conn CS] [--source CS] [--samples N]")
         Console.WriteLine("                 (read-only: compares app items against the legacy source and")
@@ -596,6 +601,76 @@ Module Program
     End Sub
 
     ''' <summary>
+    ''' سعر البيع هو الأساس: إعادة تسعير التكلفة في قاعدة التطبيق لتكون أقل من البيع بالنسبة المطلوبة.
+    ''' يكتب نسخة احتياطية (id, كود, اسم, بيع, تكلفة قديمة) قبل أي تعديل، و --dry-run لا يكتب شيئًا.
+    ''' </summary>
+    Private Sub RunApplyCostMargin(options As Dictionary(Of String, String))
+        Dim targetConn = ConnectionString(options)
+        Dim percent As Decimal = 25D
+        Decimal.TryParse(GetOption(options, "percent", "25"), percent)
+        If percent < 0D OrElse percent >= 100D Then
+            Console.Error.WriteLine("--percent must be between 0 and 99")
+            Environment.ExitCode = 1
+            Return
+        End If
+        Dim dryRun As Boolean = GetOption(options, "dry-run", "0") = "1"
+        Dim factor As Decimal = (100D - percent) / 100D
+
+        Using target = DbSession.Open(targetConn)
+            target.BeginTransaction()
+            Dim tx = target.Transaction
+
+            Dim sample = target.Connection.Query(Of CostMarginRow)(
+                "SELECT id, code, name_ar AS NameAr, sale_price AS SalePrice, cost_price AS CostPrice " &
+                "FROM items WHERE sale_price > 0 ORDER BY id LIMIT 5", Nothing, tx).AsList()
+            For Each r In sample
+                Console.WriteLine($"  sample #{r.Id} [{r.Code}] {r.NameAr} sale={r.SalePrice:0.##} cost {r.CostPrice:0.##} -> {Math.Round(r.SalePrice * factor, 2, MidpointRounding.AwayFromZero):0.##}")
+            Next
+
+            Dim wouldChange As Long = target.Connection.ExecuteScalar(Of Long)(
+                "SELECT COUNT(*) FROM items WHERE ABS(cost_price - ROUND(sale_price * @f, 2)) > 0.00001",
+                New With {.f = factor}, tx)
+            Console.WriteLine($"rows to change: {wouldChange} of {target.Connection.ExecuteScalar(Of Long)("SELECT COUNT(*) FROM items", Nothing, tx)}")
+
+            If dryRun Then
+                Console.WriteLine("dry-run: nothing written.")
+                target.Rollback()
+                Return
+            End If
+
+            Dim backupPath As String = GetOption(options, "backup",
+                Path.Combine(Directory.GetCurrentDirectory(), $"cost_backup_{DateTime.Now:yyyyMMdd_HHmmss}.csv"))
+            WriteCostBackup(target.Connection, tx, backupPath)
+
+            Dim affected As Integer = target.Connection.Execute(
+                "UPDATE items SET cost_price = ROUND(sale_price * @f, 2) " &
+                "WHERE ABS(cost_price - ROUND(sale_price * @f, 2)) > 0.00001",
+                New With {.f = factor}, tx)
+            target.Commit()
+            Console.WriteLine($"cost_price updated on {affected} items (margin {percent:0.##}% below sale). Backup: {backupPath}")
+        End Using
+    End Sub
+
+    ''' <summary>نسخة كاملة من أسعار التكلفة قبل التعديل، للرجوع لو القاعدة اتغيّرت بالغلط.</summary>
+    Private Sub WriteCostBackup(conn As MySqlConnection, tx As MySqlTransaction, path As String)
+        Using w As New StreamWriter(path, False, New Text.UTF8Encoding(True))
+            w.WriteLine("id,code,name_ar,sale_price,cost_price_before")
+            For Each r In conn.Query(Of CostMarginRow)(
+                    "SELECT id, code, name_ar AS NameAr, sale_price AS SalePrice, cost_price AS CostPrice FROM items ORDER BY id", Nothing, tx)
+                w.WriteLine($"{r.Id},{Csv(r.Code)},{Csv(r.NameAr)},{r.SalePrice:0.####},{r.CostPrice:0.####}")
+            Next
+        End Using
+        Console.WriteLine($"backup written: {path}")
+    End Sub
+
+    Private Function Csv(value As String) As String
+        Dim q As String = Chr(34)
+        Dim s As String = If(value, String.Empty)
+        If s.Contains(",") OrElse s.Contains(q) Then Return q & s.Replace(q, q & q) & q
+        Return s
+    End Function
+
+    ''' <summary>
     ''' مقارنة من طرف واحد فقط للقراءة: هل أسعار/أكواد الأصناف في قاعدة التطبيق مطابقة لمصدر rs_pharmacy،
     ''' وكم صنفاً عدّلته يدوياً في التطبيق بعد الاستيراد (updated_at &gt; created_at).
     ''' </summary>
@@ -827,6 +902,14 @@ End Class
 Friend Class LegacyUnitRow
     Public Property Id As Long
     Public Property Name As String
+End Class
+
+Friend Class CostMarginRow
+    Public Property Id As Long
+    Public Property Code As String
+    Public Property NameAr As String
+    Public Property SalePrice As Decimal
+    Public Property CostPrice As Decimal
 End Class
 
 Friend Class LegacyRatioRow
